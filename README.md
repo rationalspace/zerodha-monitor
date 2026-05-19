@@ -57,21 +57,6 @@ config.yaml    ──► config_loader.py
            email_dispatch.py → Gmail SMTP
 ```
 
-## Holdings
-
-Your holdings live in `holdings.yaml` (git-ignored — see Setup below). Each entry has symbol, quantity, average cost, sector, and whether the lot is long-term eligible.
-
-```yaml
-holdings:
-  - symbol: INFY
-    quantity: 100
-    average_cost: 900.0
-    sector: IT
-    long_term: true
-```
-
-Supports any NSE ticker — yfinance appends `.NS` automatically, with `.BO` as BSE fallback.
-
 ## Setup
 
 ### Install
