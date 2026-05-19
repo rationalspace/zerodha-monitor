@@ -103,9 +103,44 @@ A `realized_pnl.yaml` ledger tracks closed positions (also git-ignored). Copy fr
 python -m zerodha_monitor.scripts.run_guarded --dry-run
 ```
 
-### Install launchd job
+### Schedule (macOS launchd)
+
+Create `~/Library/LaunchAgents/com.zerodhamonitor.daily.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.zerodhamonitor.daily</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOUR_USERNAME/zerodha-monitor/.venv/bin/python</string>
+    <string>-m</string>
+    <string>zerodha_monitor.scripts.run_guarded</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/YOUR_USERNAME/zerodha-monitor</string>
+  <key>StartCalendarInterval</key>
+  <array>
+    <!-- fires every 30 min, 5:30–9:00 AM CDT (after NSE close at 5:00 AM CDT) -->
+    <dict><key>Hour</key><integer>5</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+  <key>StandardOutPath</key><string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
+</dict>
+</plist>
+```
+
+Then load it:
 ```bash
-cp launchd/com.zerodhamonitor.daily.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.zerodhamonitor.daily.plist
 launchctl list com.zerodhamonitor.daily   # verify loaded
 ```
@@ -122,8 +157,6 @@ zerodha-monitor/
 ├── holdings.yaml               # Your positions (git-ignored — copy from holdings.example.yaml)
 ├── realized_pnl.yaml           # Closed position ledger (git-ignored — copy from realized_pnl.example.yaml)
 ├── config.yaml                 # Rule thresholds (edit freely)
-├── launchd/
-│   └── com.zerodhamonitor.daily.plist
 ├── zerodha_monitor/
 │   ├── main.py                 # Daily orchestration
 │   ├── config_loader.py        # YAML → AppConfig

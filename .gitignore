@@ -17,3 +17,6 @@ dist/
 # Personal portfolio data — keep private, use *.example.yaml as templates
 holdings.yaml
 realized_pnl.yaml
+
+# macOS scheduler config — path-specific, keep local
+launchd/
