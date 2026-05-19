@@ -1,0 +1,28 @@
+# holdings.example.yaml — Template for holdings.yaml
+# Copy to holdings.yaml and fill in your own NSE positions.
+# holdings.yaml is git-ignored (contains your private portfolio).
+# Update manually when you buy or sell.
+
+holdings:
+  - symbol: INFY        # NSE ticker (yfinance appends .NS automatically)
+    quantity: 100
+    average_cost: 900.0  # average buy price in ₹
+    sector: IT
+    long_term: true      # true = LTCG eligible (held >1yr); false = STCG
+
+  - symbol: RELIANCE
+    quantity: 50
+    average_cost: 2200.0
+    sector: ENERGY
+    long_term: true
+
+  - symbol: HDFCBANK
+    quantity: 75
+    average_cost: 1500.0
+    sector: FINANCIAL SERVICES
+    long_term: false     # recently bought — not yet LTCG eligible
+
+  # Add all your holdings in the same format.
+  # Sectors are free-text labels used only in email alerts.
+  # long_term: true is required for the sell_near_high rule to fire
+  #   (configurable via config.yaml → sell_near_high.long_term_only).

@@ -13,3 +13,7 @@ dist/
 .ruff_cache/
 .coverage
 .DS_Store
+
+# Personal portfolio data — keep private, use *.example.yaml as templates
+holdings.yaml
+realized_pnl.yaml

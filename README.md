@@ -87,7 +87,15 @@ python -c "import keyring; keyring.set_password('portfolio-monitor', 'gmail_app_
 ```
 
 ### Configure
-Edit `config.yaml` to tune thresholds. Edit `holdings.yaml` to update positions.
+Edit `config.yaml` to tune thresholds.
+
+`holdings.yaml` is git-ignored (contains your private positions). Copy the template to get started:
+
+```bash
+cp holdings.example.yaml holdings.yaml   # then fill in your NSE tickers
+```
+
+A `realized_pnl.yaml` ledger tracks closed positions (also git-ignored). Copy from `realized_pnl.example.yaml` to start your own.
 
 ### Dry run
 ```bash
