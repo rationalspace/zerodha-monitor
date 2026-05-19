@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ alert.title }}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f7f7; margin: 0; padding: 20px;">
+  <div style="max-width: 620px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06);">
+
+    <!-- Header badge -->
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <span style="display:inline-block; padding:4px 10px; border-radius:4px; color:#fff; font-size:12px; font-weight:600; background:#e67e22;">
+        INDIA · {{ p.sector or 'EQUITY' }}
+      </span>
+      <span style="font-size:12px; color:#888;">{{ alert.rule.replace('_',' ')|title }}</span>
+      {% if p.long_term %}
+      <span style="display:inline-block; padding:3px 8px; border-radius:4px; background:#e8f5e9; color:#2e7d32; font-size:11px; font-weight:600;">LTCG eligible</span>
+      {% endif %}
+    </div>
+
+    <h1 style="margin:0 0 6px; font-size:22px; color:#2c3e50;">{{ alert.title }}</h1>
+    <p style="margin:0 0 20px; color:#555; line-height:1.5;">{{ alert.body }}</p>
+
+    <!-- Price vs highs -->
+    <table style="width:100%; border-collapse:collapse; font-size:14px; margin-bottom:20px;">
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Current price</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:700; font-size:16px; border-bottom:1px solid #eee;">₹{{ "{:,.2f}".format(p.price) }}</td>
+      </tr>
+      {% if p.day_change_pct is not none %}
+      <tr>
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Day change</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee;
+             color:{% if p.day_change_pct >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+          {{ "{:+.2%}".format(p.day_change_pct) }}
+          &nbsp;(₹{{ "{:+,.2f}".format(p.day_change_abs) }}/share)
+          {% if p.day_value_change is not none %}
+          &nbsp;·&nbsp;₹{{ "{:+,.0f}".format(p.day_value_change) }} total
+          {% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      <tr>
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">All-time high</td>
+        <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">
+          ₹{{ "{:,.2f}".format(p.ath) }}
+          <span style="margin-left:6px; color:#e67e22; font-weight:600;">{{ "{:.0%}".format(p.ath_pct) }} of ATH</span>
+        </td>
+      </tr>
+      {% if p.high_52w %}
+      <tr>
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">52-week high</td>
+        <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">
+          ₹{{ "{:,.2f}".format(p.high_52w) }}
+          {% if p.high_52w_pct %}<span style="margin-left:6px; color:#888;">{{ "{:.0%}".format(p.high_52w_pct) }}</span>{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Average cost</td>
+        <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">₹{{ "{:,.2f}".format(p.average_cost) }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Quantity</td>
+        <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">{{ "{:,.0f}".format(p.quantity) }} shares</td>
+      </tr>
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Position value</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee;">₹{{ "{:,.0f}".format(p.current_value) }}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 6px; color:#888;">Unrealized P&amp;L</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:700;
+             color:{% if p.unrealized_pl >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+          {{ "{:+.1%}".format(p.unrealized_pl_pct) }} &nbsp;(₹{{ "{:+,.0f}".format(p.unrealized_pl) }})
+        </td>
+      </tr>
+    </table>
+
+    <div style="background:#fff8e1; border-left:4px solid #f39c12; padding:12px 16px; border-radius:4px; font-size:13px; color:#7d6608; margin-bottom:20px;">
+      <strong>Reminder:</strong> LTCG tax is 10% above ₹1 lakh annual gains. Review your overall LTCG book before deciding to sell.
+    </div>
+
+    <div style="margin-top:20px; padding-top:14px; border-top:1px solid #eee; font-size:12px; color:#999;">
+      India Monitor · {{ alert.fired_at.strftime('%Y-%m-%d %H:%M UTC') }} · NSE<br>
+      This is an alert, not advice. Act on the next trading session.
+    </div>
+  </div>
+</body>
+</html>

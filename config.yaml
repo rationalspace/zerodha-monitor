@@ -1,0 +1,24 @@
+# config.yaml — India monitor thresholds and runtime settings.
+
+alerts:
+  cooldown_days: 7
+  email:
+    smtp_host: smtp.gmail.com
+    smtp_port: 587
+    from_address: ""            # Filled at runtime from Keychain (reuses portfolio-monitor secret)
+    to_address: mandeepmakkar@gmail.com
+
+# Sell-near-high rule
+sell_near_high:
+  enabled: true
+  ath_threshold_pct: 0.85       # Alert when price >= 85% of all-time high
+  long_term_only: true          # Only alert if holding is marked long_term: true in holdings.yaml
+
+# Data sources
+data_sources:
+  ath_history_period: max       # yfinance period for computing ATH
+
+# Logging
+logging:
+  level: INFO
+  retain_days: 90
