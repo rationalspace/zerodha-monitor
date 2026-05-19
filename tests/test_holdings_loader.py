@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from india_monitor.holdings_loader import Holding, load_holdings
+from zerodha_monitor.holdings_loader import Holding, load_holdings
 
 
 def _write(tmp_path: Path, data: dict) -> Path:

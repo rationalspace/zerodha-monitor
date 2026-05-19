@@ -10,7 +10,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-DEFAULT_DB = Path.home() / ".india-monitor-state.db"
+DEFAULT_DB = Path.home() / ".zerodha-monitor-state.db"
 
 
 class Store:

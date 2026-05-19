@@ -1,10 +1,10 @@
-# India Monitor (NSE — Zerodha)
+# Zerodha Monitor
 
-Personal alert system for 30 Indian equity holdings on Zerodha/NSE. Runs daily after Indian market close via macOS launchd and emails when a stock approaches its all-time high — the primary signal to consider selling LTCG-eligible positions.
+Alert utility for NSE/BSE equity holdings on Zerodha. Runs daily after Indian market close via macOS launchd and emails when a stock approaches its all-time high — the primary signal to consider selling LTCG-eligible positions.
 
 ## What it does
 
-Monitors 30 NSE holdings and fires a **Gmail alert** when any stock's closing price reaches ≥85% of its all-time high — indicating a potential exit window, especially for long-term capital gains (LTCG) eligible lots.
+Monitors your NSE holdings and fires a **Gmail alert** when any stock's closing price reaches ≥85% of its all-time high — indicating a potential exit window, especially for long-term capital gains (LTCG) eligible lots.
 
 Alert includes:
 - Current price vs ATH (₹ and %)
@@ -35,8 +35,8 @@ Four guard conditions before an alert fires:
 - **Indian market closes** 3:30 PM IST = 10:00 UTC = ~5:00 AM CDT
 - **launchd fires** every 30 min from 5:30–9:00 AM CDT, Mon–Fri
 - **Catch-up logic**: if Mac was asleep, fires on next wake-up
-- **Sentinel file** (`~/.india-monitor-last-run`) ensures one run per day max
-- **Cooldown store** (`~/.india-monitor-state.db`) — 7-day cooldown per symbol
+- **Sentinel file** (`~/.zerodha-monitor-last-run`) ensures one run per day max
+- **Cooldown store** (`~/.zerodha-monitor-state.db`) — 7-day cooldown per symbol
 
 ## Architecture
 
@@ -59,7 +59,7 @@ config.yaml    ──► config_loader.py
 
 ## Holdings
 
-All 30 holdings are in `holdings.yaml` with symbol, quantity, average cost, sector, and `long_term: true`. Update this file manually when you buy or sell.
+Your holdings live in `holdings.yaml` (git-ignored — see Setup below). Each entry has symbol, quantity, average cost, sector, and whether the lot is long-term eligible.
 
 ```yaml
 holdings:
@@ -70,18 +70,19 @@ holdings:
     long_term: true
 ```
 
+Supports any NSE ticker — yfinance appends `.NS` automatically, with `.BO` as BSE fallback.
+
 ## Setup
 
 ### Install
 ```bash
-cd ~/india-monitor
+cd ~/zerodha-monitor
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
 
-### Secrets (macOS Keychain — shared with US monitor)
+### Secrets (macOS Keychain)
 ```bash
-# Gmail (reuses portfolio-monitor keychain service)
 python -c "import keyring; keyring.set_password('portfolio-monitor', 'gmail_address', 'you@gmail.com')"
 python -c "import keyring; keyring.set_password('portfolio-monitor', 'gmail_app_password', 'xxxx-xxxx-xxxx-xxxx')"
 ```
@@ -99,30 +100,31 @@ A `realized_pnl.yaml` ledger tracks closed positions (also git-ignored). Copy fr
 
 ### Dry run
 ```bash
-python -m india_monitor.scripts.run_guarded --dry-run
+python -m zerodha_monitor.scripts.run_guarded --dry-run
 ```
 
 ### Install launchd job
 ```bash
-cp launchd/com.indiamonitor.daily.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.indiamonitor.daily.plist
-launchctl list com.indiamonitor.daily   # verify loaded
+cp launchd/com.zerodhamonitor.daily.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.zerodhamonitor.daily.plist
+launchctl list com.zerodhamonitor.daily   # verify loaded
 ```
 
 ### Logs
 ```
-~/Library/Logs/india-monitor.log
+~/Library/Logs/zerodha-monitor.log
 ```
 
 ## Project layout
 
 ```
-india-monitor/
-├── holdings.yaml               # 30 NSE positions (edit when you buy/sell)
+zerodha-monitor/
+├── holdings.yaml               # Your positions (git-ignored — copy from holdings.example.yaml)
+├── realized_pnl.yaml           # Closed position ledger (git-ignored — copy from realized_pnl.example.yaml)
 ├── config.yaml                 # Rule thresholds (edit freely)
 ├── launchd/
-│   └── com.indiamonitor.daily.plist
-├── india_monitor/
+│   └── com.zerodhamonitor.daily.plist
+├── zerodha_monitor/
 │   ├── main.py                 # Daily orchestration
 │   ├── config_loader.py        # YAML → AppConfig
 │   ├── holdings_loader.py      # holdings.yaml → Holding dataclasses
@@ -136,14 +138,14 @@ india-monitor/
 │   │   └── india_alert.html.j2 # HTML email template
 │   └── scripts/
 │       └── run_guarded.py      # IST time-gate + sentinel → main.run_once()
-└── tests/                      # 27 tests, no network required
+└── tests/                      # Tests, no network required
     ├── test_holdings_loader.py
     └── test_sell_near_high.py
 ```
 
 ## Tests
 ```bash
-pytest tests/   # 27 tests, all offline
+pytest tests/   # all offline
 ```
 
 ---

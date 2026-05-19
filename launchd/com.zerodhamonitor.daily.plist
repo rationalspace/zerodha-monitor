@@ -6,28 +6,28 @@
   Fires every 30 min from 05:30 to 09:00 CDT (10:30–14:00 UTC) Mon–Fri.
   The guard script is idempotent — runs once per day, instant skip thereafter.
 
-  Logs: ~/Library/Logs/india-monitor.log
+  Logs: ~/Library/Logs/zerodha-monitor.log
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.indiamonitor.daily</string>
+    <string>com.zerodhamonitor.daily</string>
 
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/YOUR_USERNAME/india-monitor/.venv/bin/python</string>
+        <string>/Users/YOUR_USERNAME/zerodha-monitor/.venv/bin/python</string>
         <string>-m</string>
-        <string>india_monitor.scripts.run_guarded</string>
+        <string>zerodha_monitor.scripts.run_guarded</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/YOUR_USERNAME/india-monitor</string>
+    <string>/Users/YOUR_USERNAME/zerodha-monitor</string>
 
     <key>EnvironmentVariables</key>
     <dict>
         <key>INDIA_MONITOR_HOME</key>
-        <string>/Users/YOUR_USERNAME/india-monitor</string>
+        <string>/Users/YOUR_USERNAME/zerodha-monitor</string>
         <key>TZ</key>
         <string>America/Chicago</string>
     </dict>
@@ -86,9 +86,9 @@
     </array>
 
     <key>StandardOutPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/india-monitor.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/YOUR_USERNAME/Library/Logs/india-monitor.log</string>
+    <string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
 
     <key>RunAtLoad</key>
     <false/>

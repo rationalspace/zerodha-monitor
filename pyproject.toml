@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "india-monitor"
+name = "zerodha-monitor"
 version = "0.1.0"
 description = "Zerodha India portfolio sell-near-high alert system."
 requires-python = ">=3.11"
@@ -27,8 +27,8 @@ dev = [
 ]
 
 [project.scripts]
-india-monitor = "india_monitor.main:cli"
-india-monitor-run-once = "india_monitor.scripts.run_guarded:main"
+zerodha-monitor = "zerodha_monitor.main:cli"
+zerodha-monitor-run-once = "zerodha_monitor.scripts.run_guarded:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["india_monitor"]
+packages = ["zerodha_monitor"]

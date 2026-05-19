@@ -76,7 +76,7 @@ def run_once(*, dry_run: bool = False) -> int:
 
 def cli() -> None:
     import argparse, sys
-    parser = argparse.ArgumentParser(prog="india-monitor")
+    parser = argparse.ArgumentParser(prog="zerodha-monitor")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     try:

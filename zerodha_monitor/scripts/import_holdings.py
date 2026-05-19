@@ -1,7 +1,7 @@
 """Re-import holdings from a fresh Zerodha Console Excel export.
 
 Usage:
-    python -m india_monitor.scripts.import_holdings ~/Downloads/holdings-XFG529.xlsx
+    python -m zerodha_monitor.scripts.import_holdings ~/Downloads/holdings-XFG529.xlsx
 
 Overwrites holdings.yaml in the project root. Review the diff before committing.
 The long_term field is preserved from the existing holdings.yaml where a symbol
@@ -95,7 +95,7 @@ def main() -> int:
         print(f"File not found: {args.xlsx}", file=sys.stderr)
         return 1
 
-    from india_monitor.holdings_loader import project_root
+    from zerodha_monitor.holdings_loader import project_root
     out_path = args.output or (project_root() / "holdings.yaml")
 
     holdings = parse_xlsx(args.xlsx)

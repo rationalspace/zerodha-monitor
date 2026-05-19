@@ -6,10 +6,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from india_monitor.config_loader import AppConfig, SellNearHighConfig
-from india_monitor.holdings_loader import Holding
-from india_monitor.market_data import PriceSnapshot
-from india_monitor.rules.sell_near_high import SellNearHighRule
+from zerodha_monitor.config_loader import AppConfig, SellNearHighConfig
+from zerodha_monitor.holdings_loader import Holding
+from zerodha_monitor.market_data import PriceSnapshot
+from zerodha_monitor.rules.sell_near_high import SellNearHighRule
 
 
 def _config(threshold: float = 0.85, long_term_only: bool = True) -> AppConfig:
@@ -157,7 +157,7 @@ class TestSellNearHighRule:
         snap = _snap(price=1000.0, ath=1100.0)
         rule = SellNearHighRule(_config())
         alerts = rule.evaluate([_holding()], _market({"INFY": snap}))
-        from india_monitor.rules.sell_near_high import Severity
+        from zerodha_monitor.rules.sell_near_high import Severity
         assert alerts[0].severity == Severity.HIGH
 
     def test_skips_insufficient_history(self):
@@ -203,7 +203,7 @@ class TestSellNearHighRule:
 
 class TestStoreIntegration:
     def test_cooldown_prevents_second_alert(self, tmp_path):
-        from india_monitor.store import Store
+        from zerodha_monitor.store import Store
         store = Store(db_path=tmp_path / "state.db")
         assert not store.in_cooldown("INFY", "sell_near_high", 7)
         store.record(symbol="INFY", rule="sell_near_high", severity="high",

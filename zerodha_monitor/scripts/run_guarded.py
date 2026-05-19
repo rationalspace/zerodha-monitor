@@ -4,7 +4,7 @@ Indian market closes at 3:30 PM IST = ~5:00 AM CDT / ~10:00 UTC.
 We run any time after 10:30 UTC (buffer for data to settle) on a weekday.
 The sentinel file prevents double-runs after the first successful execution.
 
-Sentinel: ~/.india-monitor-last-run  (contains YYYY-MM-DD)
+Sentinel: ~/.zerodha-monitor-last-run  (contains YYYY-MM-DD)
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 IST = ZoneInfo("Asia/Kolkata")
 UTC = timezone.utc
-SENTINEL = Path.home() / ".india-monitor-last-run"
+SENTINEL = Path.home() / ".zerodha-monitor-last-run"
 
 # Run after 10:30 UTC (= 4:00 PM IST, 30 min after market close)
 RUN_AFTER_UTC_HOUR = 10
@@ -71,7 +71,7 @@ def main() -> int:
 
     log.info("Conditions met (IST: %s) — starting India monitor run.", now_ist.strftime("%H:%M"))
 
-    from india_monitor.main import run_once
+    from zerodha_monitor.main import run_once
 
     try:
         run_once()
