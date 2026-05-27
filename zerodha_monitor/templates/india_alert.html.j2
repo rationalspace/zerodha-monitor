@@ -41,6 +41,23 @@
         </td>
       </tr>
       {% endif %}
+      {% if p.five_day_return_pct is not none %}
+      <tr style="background:#fafafa;">
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">5-day return</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee;
+             color:{% if p.five_day_return_pct >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+          {{ "{:+.2%}".format(p.five_day_return_pct) }}
+        </td>
+      </tr>
+      {% endif %}
+      {% if p.consecutive_up_days is not none and p.consecutive_up_days > 0 %}
+      <tr>
+        <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">Momentum</td>
+        <td style="padding:8px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee; color:#27ae60;">
+          {{ p.consecutive_up_days }} consecutive up day{% if p.consecutive_up_days != 1 %}s{% endif %}
+        </td>
+      </tr>
+      {% endif %}
       <tr>
         <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">All-time high</td>
         <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">

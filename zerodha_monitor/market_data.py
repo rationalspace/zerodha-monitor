@@ -31,6 +31,8 @@ class PriceSnapshot:
     history_days: int = 0         # Calendar days spanned by the full history (0 = unknown)
     day_change_pct: float | None = None   # (price - prev_close) / prev_close
     day_change_abs: float | None = None   # price - prev_close  (₹ per share)
+    five_day_return_pct: float | None = None   # 5-trading-day cumulative return
+    consecutive_up_days: int | None = None     # # of consecutive positive closes (most recent)
 
 
 _SUFFIXES = [".NS", ".BO"]
@@ -82,6 +84,22 @@ class IndiaMarketData:
             day_change_abs = None
             day_change_pct = None
 
+        # 5-trading-day return (close[−1] vs close[−6])
+        if len(hist_max) >= 6:
+            base = float(hist_max["Close"].iloc[-6])
+            five_day_return_pct = (price - base) / base if base else None
+        else:
+            five_day_return_pct = None
+
+        # Consecutive up days — count back from the most recent session
+        closes = hist_max["Close"].tolist()
+        consecutive_up_days = 0
+        for i in range(len(closes) - 1, 0, -1):
+            if closes[i] > closes[i - 1]:
+                consecutive_up_days += 1
+            else:
+                break
+
         return PriceSnapshot(
             symbol=symbol.upper(),
             yf_symbol=yf_sym,
@@ -93,6 +111,8 @@ class IndiaMarketData:
             history_days=history_days,
             day_change_pct=day_change_pct,
             day_change_abs=day_change_abs,
+            five_day_return_pct=five_day_return_pct,
+            consecutive_up_days=consecutive_up_days,
         )
 
     def batch_snapshots(self, symbols: list[str]) -> dict[str, PriceSnapshot | None]:

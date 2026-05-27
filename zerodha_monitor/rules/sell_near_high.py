@@ -123,6 +123,8 @@ class SellNearHighRule:
                 "day_change_pct": snap.day_change_pct,
                 "day_change_abs": snap.day_change_abs,
                 "day_value_change": day_value_change,
+                "five_day_return_pct": snap.five_day_return_pct,
+                "consecutive_up_days": snap.consecutive_up_days,
                 "ath": snap.ath,
                 "ath_pct": snap.ath_pct,
                 "high_52w": snap.high_52w,
