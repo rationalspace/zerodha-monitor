@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 
 from .config_loader import load_config
 from .email_dispatch import EmailDispatcher
@@ -10,6 +12,14 @@ from .holdings_loader import load_holdings, project_root
 from .market_data import IndiaMarketData
 from .rules import ALL_RULES
 from .store import Store
+
+# COE trade log lives in the US portfolio-monitor repo (single source of truth).
+_COE_TRADE_LOG = Path.home() / "portfolio-monitor" / "coe_trade_log.yaml"
+sys.path.insert(0, str(Path.home() / "portfolio-monitor"))
+try:
+    from portfolio_monitor.compliance_checker import get_compliance_status as _get_compliance
+except ImportError:
+    _get_compliance = None  # type: ignore[assignment]
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +46,7 @@ def run_once(*, dry_run: bool = False) -> int:
     store = Store()
     dispatcher = EmailDispatcher(config.alerts.email)
 
+    compliance = _get_compliance(_COE_TRADE_LOG) if _get_compliance else None
     sent_count = 0
 
     for rule_cls in ALL_RULES:
@@ -53,6 +64,10 @@ def run_once(*, dry_run: bool = False) -> int:
             if store.in_cooldown(alert.symbol, alert.rule, config.alerts.cooldown_days):
                 log.debug("Cooldown skip: %s/%s", alert.symbol, alert.rule)
                 continue
+
+            # Attach compliance status to every alert payload before dispatch.
+            if compliance:
+                alert.payload["compliance"] = compliance
 
             log.info("Dispatch: %s [%s]", alert.title, alert.severity.value)
             try:
