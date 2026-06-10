@@ -19,6 +19,9 @@ class Holding:
     average_cost: float  # ₹ per share (cost basis)
     sector: str
     long_term: bool      # True = acquired > 1 year ago (LTCG eligible)
+    exit_tier: str = ""  # exit_now | exit_soon | sell_on_rally | wait_for_bounce | hold | ""
+    exit_note: str = ""  # brief rationale for the exit decision
+    exit_pop_threshold: float | None = None  # If set, only fire when day OR 5d move >= this (e.g. 0.05 = 5%)
 
     @property
     def ns_symbol(self) -> str:
@@ -53,6 +56,9 @@ def load_holdings(path: Path) -> list[Holding]:
                 average_cost=float(item["average_cost"]),
                 sector=str(item.get("sector", "")).strip(),
                 long_term=bool(item.get("long_term", False)),
+                exit_tier=str(item.get("exit_tier", "")).strip(),
+                exit_note=str(item.get("exit_note", "")).strip(),
+                exit_pop_threshold=float(item["exit_pop_threshold"]) if item.get("exit_pop_threshold") is not None else None,
             )
         )
     return holdings

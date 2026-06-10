@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>India Monitor Digest — {{ date_str }}</title>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f4f4;margin:0;padding:16px;">
+<div style="max-width:760px;margin:0 auto;background:#fff;border-radius:8px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.07);">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+    <span style="background:#1a1a2e;color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;letter-spacing:.5px;">INDIA DIGEST</span>
+    <span style="font-size:20px;font-weight:700;color:#2c3e50;">{{ date_str }}</span>
+    <span style="font-size:13px;color:#888;">{{ total }} alert{% if total != 1 %}s{% endif %}</span>
+  </div>
+  <p style="margin:0 0 20px;font-size:12px;color:#e67e22;">
+    ⚠️ Data as of {{ date_str }} (yfinance lag) — verify live prices in Zerodha before acting.
+  </p>
+
+  <!-- ── SECTION 1: PROFITABLE POSITIONS ── -->
+  {% if profitable %}
+  <h2 style="font-size:14px;font-weight:700;color:#27ae60;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;border-bottom:2px solid #27ae60;padding-bottom:4px;">
+    ✅ Profitable Positions — Sorted by Minimum Analyst Upside
+  </h2>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="background:#f0faf0;">
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Symbol</th>
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Tier</th>
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Trigger</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Price</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Day</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Gain ₹</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Gain %</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">LTCG Tax</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Target</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Upside</th>
+        <th style="padding:8px 6px;text-align:center;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Rec</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">% ATH</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for alert in profitable %}
+    {% set p = alert.payload %}
+    {% set gain_pct = p.unrealized_pl / p.cost_basis if p.cost_basis else 0 %}
+    {% set upside = p.analyst_upside %}
+    {% set tier_color = {'exit_now':'#c0392b','exit_soon':'#e67e22','sell_on_rally':'#f39c12','wait_for_bounce':'#2980b9'}.get(p.exit_tier or '', '#7f8c8d') %}
+    <tr style="border-bottom:1px solid #eee;{% if loop.index is odd %}background:#fafafa;{% endif %}">
+      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">{{ p.symbol }}</td>
+      <td style="padding:8px 6px;">
+        <span style="display:inline-block;padding:2px 7px;border-radius:3px;color:#fff;font-size:11px;font-weight:600;background:{{ tier_color }};">
+          {{ (p.exit_tier or '').replace('_',' ').upper() }}
+        </span>
+      </td>
+      <td style="padding:8px 6px;color:#555;font-size:12px;">
+        {% if p.bounce_quality is defined %}
+        <span style="display:inline-block;margin-bottom:3px;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;color:#fff;
+          background:{{ {'MA50_RECLAIM':'#27ae60','ABOVE_MA200':'#2980b9','BELOW_BOTH_MAS':'#f39c12'}.get(p.bounce_quality,'#7f8c8d') }};">
+          {{ {'MA50_RECLAIM':'Above MA50 ✓','ABOVE_MA200':'Above MA200','BELOW_BOTH_MAS':'Below MAs'}.get(p.bounce_quality,'') }}
+        </span><br>
+        {% endif %}
+        {% if p.triggers is defined %}{{ p.triggers | join(', ') }}
+        {% elif p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
+        {% else %}bounce signal{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600;">₹{{ "{:,.0f}".format(p.price) }}</td>
+      <td style="padding:8px 6px;text-align:right;font-weight:700;white-space:nowrap;
+           color:{% if 'day_change_pct' in p and p.day_change_pct is not none %}{% if p.day_change_pct >= 0 %}#27ae60{% else %}#c0392b{% endif %}{% else %}#aaa{% endif %};">
+        {% if 'day_change_pct' in p and p.day_change_pct is not none %}{{ "{:+.1%}".format(p.day_change_pct) }}{% else %}—{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;color:#27ae60;font-weight:600;">+₹{{ "{:,.0f}".format(p.unrealized_pl) }}</td>
+      <td style="padding:8px 6px;text-align:right;color:#27ae60;font-weight:700;">{{ "{:+.0%}".format(gain_pct) }}</td>
+      <td style="padding:8px 6px;text-align:right;color:#e67e22;">
+        {% if p.ltcg_tax %}₹{{ "{:,.0f}".format(p.ltcg_tax) }}{% else %}—{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;color:#555;">
+        {% if p.analyst_target %}₹{{ "{:,.0f}".format(p.analyst_target) }}{% else %}N/A{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600;
+           {% if upside is not none %}color:{% if upside >= 0.10 %}#27ae60{% elif upside >= 0 %}#e67e22{% else %}#c0392b{% endif %};{% endif %}">
+        {% if upside is not none %}{{ "{:+.1%}".format(upside) }}{% else %}N/A{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:center;font-size:11px;color:#666;">
+        {{ (p.analyst_recommendation or '—') | replace('_',' ') | title }}
+        {% if p.analyst_count %}<br><span style="color:#aaa;">({{ p.analyst_count }})</span>{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;font-size:12px;color:#888;">
+        {% if p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }}{% else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+
+  <!-- ── SECTION 2: LOSS POSITIONS ── -->
+  {% if losses %}
+  <h2 style="font-size:14px;font-weight:700;color:#c0392b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 8px;border-bottom:2px solid #c0392b;padding-bottom:4px;">
+    ⚠️ Loss Positions — Exit Into This Bounce
+  </h2>
+  <div style="overflow-x:auto;margin-bottom:24px;">
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="background:#fff5f5;">
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Symbol</th>
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Tier</th>
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Trigger</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Price</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Day</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Loss ₹</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Loss %</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Target</th>
+        <th style="padding:8px 6px;text-align:right;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Upside</th>
+        <th style="padding:8px 6px;text-align:center;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Rec</th>
+        <th style="padding:8px 6px;text-align:left;color:#555;border-bottom:2px solid #ddd;white-space:nowrap;">Note</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for alert in losses %}
+    {% set p = alert.payload %}
+    {% set loss_pct = p.unrealized_pl / p.cost_basis if p.cost_basis else 0 %}
+    {% set upside = p.analyst_upside %}
+    {% set tier_color = {'exit_now':'#c0392b','exit_soon':'#e67e22','sell_on_rally':'#f39c12','wait_for_bounce':'#2980b9'}.get(p.exit_tier or '', '#7f8c8d') %}
+    <tr style="border-bottom:1px solid #eee;{% if loop.index is odd %}background:#fffafa;{% endif %}">
+      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">{{ p.symbol }}</td>
+      <td style="padding:8px 6px;">
+        <span style="display:inline-block;padding:2px 7px;border-radius:3px;color:#fff;font-size:11px;font-weight:600;background:{{ tier_color }};">
+          {{ (p.exit_tier or '').replace('_',' ').upper() }}
+        </span>
+      </td>
+      <td style="padding:8px 6px;color:#555;font-size:12px;">
+        {% if p.bounce_quality is defined %}
+        <span style="display:inline-block;margin-bottom:3px;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;color:#fff;
+          background:{{ {'MA50_RECLAIM':'#27ae60','ABOVE_MA200':'#2980b9','BELOW_BOTH_MAS':'#f39c12'}.get(p.bounce_quality,'#7f8c8d') }};">
+          {{ {'MA50_RECLAIM':'Above MA50 ✓','ABOVE_MA200':'Above MA200','BELOW_BOTH_MAS':'Below MAs'}.get(p.bounce_quality,'') }}
+        </span><br>
+        {% endif %}
+        {% if p.triggers is defined %}{{ p.triggers | join(', ') }}
+        {% elif p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
+        {% else %}bounce signal{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600;">₹{{ "{:,.0f}".format(p.price) }}</td>
+      <td style="padding:8px 6px;text-align:right;font-weight:700;white-space:nowrap;
+           color:{% if 'day_change_pct' in p and p.day_change_pct is not none %}{% if p.day_change_pct >= 0 %}#27ae60{% else %}#c0392b{% endif %}{% else %}#aaa{% endif %};">
+        {% if 'day_change_pct' in p and p.day_change_pct is not none %}{{ "{:+.1%}".format(p.day_change_pct) }}{% else %}—{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;color:#c0392b;font-weight:600;">₹{{ "{:,.0f}".format(p.unrealized_pl) }}</td>
+      <td style="padding:8px 6px;text-align:right;color:#c0392b;font-weight:700;">{{ "{:+.0%}".format(loss_pct) }}</td>
+      <td style="padding:8px 6px;text-align:right;color:#555;">
+        {% if p.analyst_target %}₹{{ "{:,.0f}".format(p.analyst_target) }}{% else %}N/A{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600;
+           {% if upside is not none %}color:{% if upside >= 0.15 %}#27ae60{% elif upside >= 0 %}#e67e22{% else %}#c0392b{% endif %};{% endif %}">
+        {% if upside is not none %}{{ "{:+.1%}".format(upside) }}{% else %}N/A{% endif %}
+      </td>
+      <td style="padding:8px 6px;text-align:center;font-size:11px;color:#666;">
+        {{ (p.analyst_recommendation or '—') | replace('_',' ') | title }}
+        {% if p.analyst_count %}<br><span style="color:#aaa;">({{ p.analyst_count }})</span>{% endif %}
+      </td>
+      <td style="padding:8px 6px;font-size:11px;color:#888;max-width:160px;">{{ p.exit_note or '' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <div style="border-top:1px solid #eee;padding-top:12px;font-size:11px;color:#aaa;">
+    India Monitor · All prices as of {{ date_str }} close · LTCG @ 12.5% (post Jul-2024) · ₹1.25L annual exemption applies
+  </div>
+
+</div>
+</body>
+</html>
