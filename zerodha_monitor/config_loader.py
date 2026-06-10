@@ -32,6 +32,43 @@ class SellNearHighConfig:
 
 
 @dataclass
+class ExitMomentumConfig:
+    enabled: bool = True
+    # Exit-now tier: fire urgent on any signal
+    exit_now_rsi_threshold: float = 65.0    # Fire when RSI >= this
+    exit_now_day_pop_pct: float = 0.02      # Or 2% daily pop
+    exit_now_five_day_pct: float = 0.04     # Or 4% 5-day
+    exit_now_consecutive_days: int = 2      # Or 2+ consecutive up days
+    # Exit-soon / sell-on-rally tiers: slightly higher bar
+    rally_rsi_threshold: float = 60.0
+    rally_day_pop_pct: float = 0.03
+    rally_five_day_pct: float = 0.06
+    rally_consecutive_days: int = 3
+    # Analyst proximity gate for profitable positions:
+    # Suppress alert if analyst upside > this. Default 7% = only alert when ≤7% upside remains.
+    profitable_max_analyst_upside: float = 0.07
+    # Break-even gate for loss positions:
+    # Fire when price >= avg_cost × (1 + break_even_buffer). Default 0.0 = exactly at break-even.
+    break_even_buffer: float = 0.0
+
+
+@dataclass
+class BounceAlertConfig:
+    enabled: bool = True
+    rsi_recovery_threshold: float = 35.0   # Fire when RSI >= this (recovering from oversold)
+    consecutive_up_days: int = 3            # Or 3+ consecutive up days
+    five_day_pct: float = 0.05             # Or 5% 5-day rally
+    ma50_reclaim_as_trigger: bool = True    # Phase 3: also trigger when price reclaims 50-day average
+
+
+@dataclass
+class MaCrossoverConfig:
+    """Phase 4 — golden/death cross detection for held India positions."""
+    enabled: bool = True
+    cooldown_days: int = 30    # Crossovers are rare; suppress re-alerts for 30 days
+
+
+@dataclass
 class DataSourcesConfig:
     ath_history_period: str = "max"
 
@@ -46,6 +83,9 @@ class LoggingConfig:
 class AppConfig:
     alerts: AlertsConfig = field(default_factory=AlertsConfig)
     sell_near_high: SellNearHighConfig = field(default_factory=SellNearHighConfig)
+    exit_momentum: ExitMomentumConfig = field(default_factory=ExitMomentumConfig)
+    bounce_alert: BounceAlertConfig = field(default_factory=BounceAlertConfig)
+    ma_crossover: MaCrossoverConfig = field(default_factory=MaCrossoverConfig)
     data_sources: DataSourcesConfig = field(default_factory=DataSourcesConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
 
@@ -75,6 +115,36 @@ def load_config(path: Path) -> AppConfig:
         profitable_only=bool(snh_raw.get("profitable_only", True)),
     )
 
+    em_raw = raw.get("exit_momentum", {})
+    em_cfg = ExitMomentumConfig(
+        enabled=bool(em_raw.get("enabled", True)),
+        exit_now_rsi_threshold=float(em_raw.get("exit_now_rsi_threshold", 65.0)),
+        exit_now_day_pop_pct=float(em_raw.get("exit_now_day_pop_pct", 0.02)),
+        exit_now_five_day_pct=float(em_raw.get("exit_now_five_day_pct", 0.04)),
+        exit_now_consecutive_days=int(em_raw.get("exit_now_consecutive_days", 2)),
+        rally_rsi_threshold=float(em_raw.get("rally_rsi_threshold", 60.0)),
+        rally_day_pop_pct=float(em_raw.get("rally_day_pop_pct", 0.03)),
+        rally_five_day_pct=float(em_raw.get("rally_five_day_pct", 0.06)),
+        rally_consecutive_days=int(em_raw.get("rally_consecutive_days", 3)),
+        profitable_max_analyst_upside=float(em_raw.get("profitable_max_analyst_upside", 0.07)),
+        break_even_buffer=float(em_raw.get("break_even_buffer", 0.0)),
+    )
+
+    ba_raw = raw.get("bounce_alert", {})
+    ba_cfg = BounceAlertConfig(
+        enabled=bool(ba_raw.get("enabled", True)),
+        rsi_recovery_threshold=float(ba_raw.get("rsi_recovery_threshold", 35.0)),
+        consecutive_up_days=int(ba_raw.get("consecutive_up_days", 3)),
+        five_day_pct=float(ba_raw.get("five_day_pct", 0.05)),
+        ma50_reclaim_as_trigger=bool(ba_raw.get("ma50_reclaim_as_trigger", True)),
+    )
+
+    mac_raw = raw.get("ma_crossover", {})
+    mac_cfg = MaCrossoverConfig(
+        enabled=bool(mac_raw.get("enabled", True)),
+        cooldown_days=int(mac_raw.get("cooldown_days", 30)),
+    )
+
     ds_raw = raw.get("data_sources", {})
     ds_cfg = DataSourcesConfig(
         ath_history_period=ds_raw.get("ath_history_period", "max"),
@@ -89,6 +159,9 @@ def load_config(path: Path) -> AppConfig:
     return AppConfig(
         alerts=alerts_cfg,
         sell_near_high=snh_cfg,
+        exit_momentum=em_cfg,
+        bounce_alert=ba_cfg,
+        ma_crossover=mac_cfg,
         data_sources=ds_cfg,
         logging=log_cfg,
     )

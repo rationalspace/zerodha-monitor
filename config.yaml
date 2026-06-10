@@ -14,6 +14,35 @@ sell_near_high:
   ath_threshold_pct: 0.85       # Alert when price >= 85% of all-time high
   long_term_only: true          # Only alert if holding is marked long_term: true in holdings.yaml
 
+# Exit momentum rule — fires for exit_now, exit_soon, sell_on_rally tiers
+exit_momentum:
+  enabled: true
+  exit_now_rsi_threshold: 65
+  exit_now_day_pop_pct: 0.02
+  exit_now_five_day_pct: 0.04
+  exit_now_consecutive_days: 2
+  rally_rsi_threshold: 60
+  rally_day_pop_pct: 0.03
+  rally_five_day_pct: 0.06
+  rally_consecutive_days: 3
+
+# Bounce alert rule — fires for wait_for_bounce tier when recovery signals appear
+bounce_alert:
+  enabled: true
+  rsi_recovery_threshold: 35
+  consecutive_up_days: 3
+  five_day_pct: 0.05
+  ma50_reclaim_as_trigger: true   # Phase 3: also trigger when price reclaims the 50-day average
+
+# MA Crossover — Phase 4
+# Detects when 50-day average crosses the 200-day average for any held position.
+# Golden cross (MA50 above MA200) = recovery confirmed.
+# Death cross (MA50 below MA200) = selling becoming a trend.
+# 30-day cooldown prevents re-alerting while averages hover near each other.
+ma_crossover:
+  enabled: true
+  cooldown_days: 30
+
 # Data sources
 data_sources:
   ath_history_period: max       # yfinance period for computing ATH

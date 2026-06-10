@@ -115,10 +115,27 @@ class SellNearHighRule:
                 if snap.day_change_abs is not None else None
             )
 
+            # Fetch fundamentals for enriched payload
+            try:
+                fund = market.fundamentals(holding.symbol)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Fundamentals fetch failed for %s: %s", holding.symbol, exc)
+                fund = None
+
+            rsi = market.rsi_14(holding.symbol)
+
+            analyst_upside: float | None = None
+            if fund and fund.analyst_target_mean and snap.price:
+                analyst_upside = (fund.analyst_target_mean - snap.price) / snap.price
+
+            ltcg_tax = unrealized_pl * 0.125 if unrealized_pl > 0 else 0.0
+
             payload = {
                 "symbol": holding.symbol,
                 "sector": holding.sector,
                 "long_term": holding.long_term,
+                "exit_tier": holding.exit_tier,
+                "exit_note": holding.exit_note,
                 "price": snap.price,
                 "day_change_pct": snap.day_change_pct,
                 "day_change_abs": snap.day_change_abs,
@@ -135,13 +152,25 @@ class SellNearHighRule:
                 "cost_basis": cost_basis,
                 "unrealized_pl": unrealized_pl,
                 "unrealized_pl_pct": unrealized_pl_pct,
+                "rsi_14": rsi,
+                "analyst_upside": analyst_upside,
+                "ltcg_tax": ltcg_tax,
+                "trailing_pe": fund.trailing_pe if fund else None,
+                "forward_pe": fund.forward_pe if fund else None,
+                "revenue_yoy": fund.revenue_yoy if fund else None,
+                "op_margin": fund.op_margin if fund else None,
+                "analyst_target": fund.analyst_target_mean if fund else None,
+                "analyst_recommendation": fund.analyst_recommendation if fund else None,
+                "eps_history": fund.eps_history if fund else [],
             }
 
             title = (
                 f"{holding.symbol} at {snap.ath_pct:.0%} of ATH"
                 f" — consider selling (LTCG eligible)"
             )
+            data_date_str = snap.data_date.strftime("%b %d") if snap.data_date else "unknown date"
             body = (
+                f"⚠️ Data as of {data_date_str} — verify live price in Zerodha before acting. "
                 f"Price ₹{snap.price:,.2f} is {snap.ath_pct:.0%} of ATH ₹{snap.ath:,.2f}. "
                 f"Unrealized gain: {unrealized_pl_pct:+.1%} (₹{unrealized_pl:+,.0f}). "
                 f"Position value: ₹{current_value:,.0f}."

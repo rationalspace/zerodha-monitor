@@ -9,7 +9,7 @@
   <div style="max-width: 620px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06);">
 
     <!-- Header badge -->
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
       <span style="display:inline-block; padding:4px 10px; border-radius:4px; color:#fff; font-size:12px; font-weight:600; background:#e67e22;">
         INDIA · {{ p.sector or 'EQUITY' }}
       </span>
@@ -17,10 +17,28 @@
       {% if p.long_term %}
       <span style="display:inline-block; padding:3px 8px; border-radius:4px; background:#e8f5e9; color:#2e7d32; font-size:11px; font-weight:600;">LTCG eligible</span>
       {% endif %}
+      {% if p.exit_tier is defined and p.exit_tier %}
+      {% set tier_bg = {
+          'exit_now':       '#c0392b',
+          'exit_soon':      '#e67e22',
+          'sell_on_rally':  '#f39c12',
+          'wait_for_bounce':'#2980b9'
+        }.get(p.exit_tier, '#7f8c8d') %}
+      <span style="display:inline-block; padding:3px 8px; border-radius:4px; color:#fff; font-size:11px; font-weight:700;
+           background:{{ tier_bg }};">
+        {{ p.exit_tier.replace('_',' ').upper() }}
+      </span>
+      {% endif %}
     </div>
 
     <h1 style="margin:0 0 6px; font-size:22px; color:#2c3e50;">{{ alert.title }}</h1>
     <p style="margin:0 0 20px; color:#555; line-height:1.5;">{{ alert.body }}</p>
+
+    {% if p.exit_note is defined and p.exit_note %}
+    <div style="background:#eef2ff; border-left:4px solid #5c6bc0; padding:10px 14px; border-radius:4px; font-size:13px; color:#283593; margin-bottom:16px;">
+      <strong>Exit rationale:</strong> {{ p.exit_note }}
+    </div>
+    {% endif %}
 
     <!-- Price vs highs -->
     <table style="width:100%; border-collapse:collapse; font-size:14px; margin-bottom:20px;">
@@ -58,13 +76,15 @@
         </td>
       </tr>
       {% endif %}
+      {% if p.ath is not none %}
       <tr>
         <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">All-time high</td>
         <td style="padding:8px 6px; text-align:right; border-bottom:1px solid #eee;">
           ₹{{ "{:,.2f}".format(p.ath) }}
-          <span style="margin-left:6px; color:#e67e22; font-weight:600;">{{ "{:.0%}".format(p.ath_pct) }} of ATH</span>
+          {% if p.ath_pct %}<span style="margin-left:6px; color:#e67e22; font-weight:600;">{{ "{:.0%}".format(p.ath_pct) }} of ATH</span>{% endif %}
         </td>
       </tr>
+      {% endif %}
       {% if p.high_52w %}
       <tr>
         <td style="padding:8px 6px; color:#888; border-bottom:1px solid #eee;">52-week high</td>
@@ -95,6 +115,114 @@
       </tr>
     </table>
 
+    <!-- Stock snapshot (RSI + fundamentals) -->
+    {% if (p.rsi_14 is defined and p.rsi_14 is not none) or (p.trailing_pe is defined and p.trailing_pe is not none) %}
+    <h3 style="margin:0 0 10px; font-size:15px; color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:6px;">Stock Snapshot</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+      {% if p.rsi_14 is defined and p.rsi_14 is not none %}
+      <tr style="background:#fafafa;">
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">RSI(14)</td>
+        <td style="padding:7px 6px; text-align:right; font-weight:700; border-bottom:1px solid #eee;
+             color:{% if p.rsi_14 >= 70 %}#c0392b{% elif p.rsi_14 <= 35 %}#27ae60{% else %}#2c3e50{% endif %};">
+          {{ "{:.1f}".format(p.rsi_14) }}
+          {% if p.rsi_14 >= 70 %} <span style="font-size:11px; font-weight:400;">(overbought)</span>
+          {% elif p.rsi_14 <= 35 %} <span style="font-size:11px; font-weight:400;">(oversold)</span>{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      {% if p.trailing_pe is defined and p.trailing_pe is not none %}
+      <tr>
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Trailing P/E</td>
+        <td style="padding:7px 6px; text-align:right; border-bottom:1px solid #eee;">{{ "{:.1f}".format(p.trailing_pe) }}x</td>
+      </tr>
+      {% endif %}
+      {% if p.forward_pe is defined and p.forward_pe is not none %}
+      <tr style="background:#fafafa;">
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Forward P/E</td>
+        <td style="padding:7px 6px; text-align:right; border-bottom:1px solid #eee;">{{ "{:.1f}".format(p.forward_pe) }}x</td>
+      </tr>
+      {% endif %}
+      {% if p.revenue_yoy is defined and p.revenue_yoy is not none %}
+      <tr>
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Revenue YoY</td>
+        <td style="padding:7px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee;
+             color:{% if p.revenue_yoy >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+          {{ "{:+.1%}".format(p.revenue_yoy) }}
+        </td>
+      </tr>
+      {% endif %}
+      {% if p.op_margin is defined and p.op_margin is not none %}
+      <tr style="background:#fafafa;">
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Op. Margin</td>
+        <td style="padding:7px 6px; text-align:right; border-bottom:1px solid #eee;">{{ "{:.1%}".format(p.op_margin) }}</td>
+      </tr>
+      {% endif %}
+      {% if p.analyst_target is defined and p.analyst_target is not none %}
+      <tr>
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Analyst Target (mean)</td>
+        <td style="padding:7px 6px; text-align:right; border-bottom:1px solid #eee;">
+          ₹{{ "{:,.0f}".format(p.analyst_target) }}
+          {% if p.analyst_upside is defined and p.analyst_upside is not none %}
+          <span style="margin-left:6px; font-weight:600;
+               color:{% if p.analyst_upside >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
+            {{ "{:+.1%}".format(p.analyst_upside) }}
+          </span>
+          {% endif %}
+          {% if p.analyst_target_low is defined and p.analyst_target_low is not none
+             and p.analyst_target_high is defined and p.analyst_target_high is not none %}
+          <span style="margin-left:6px; font-size:12px; color:#888;">
+            (₹{{ "{:,.0f}".format(p.analyst_target_low) }}–₹{{ "{:,.0f}".format(p.analyst_target_high) }})
+          </span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      {% if p.analyst_recommendation is defined and p.analyst_recommendation is not none %}
+      <tr style="background:#fafafa;">
+        <td style="padding:7px 6px; color:#888; border-bottom:1px solid #eee;">Analyst Recommendation</td>
+        <td style="padding:7px 6px; text-align:right; border-bottom:1px solid #eee;">
+          {{ p.analyst_recommendation | replace('_', ' ') | title }}
+          {% if p.analyst_count is defined and p.analyst_count is not none %}
+          <span style="font-size:11px; color:#888;">({{ p.analyst_count }} analysts)</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    </table>
+
+    <!-- EPS History -->
+    {% if p.eps_history is defined and p.eps_history %}
+    <h3 style="margin:0 0 8px; font-size:14px; color:#2c3e50;">EPS History (last 4Q)</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:20px;">
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th style="padding:6px 8px; text-align:left; color:#555; border-bottom:1px solid #ddd;">Quarter</th>
+          <th style="padding:6px 8px; text-align:right; color:#555; border-bottom:1px solid #ddd;">Estimate</th>
+          <th style="padding:6px 8px; text-align:right; color:#555; border-bottom:1px solid #ddd;">Actual</th>
+          <th style="padding:6px 8px; text-align:right; color:#555; border-bottom:1px solid #ddd;">Surprise</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for eps in p.eps_history %}
+        <tr {% if loop.index is odd %}style="background:#fafafa;"{% endif %}>
+          <td style="padding:5px 8px; border-bottom:1px solid #eee; color:#555;">{{ eps.period }}</td>
+          <td style="padding:5px 8px; text-align:right; border-bottom:1px solid #eee;">
+            {% if eps.estimate is not none %}{{ "{:.2f}".format(eps.estimate) }}{% else %}—{% endif %}
+          </td>
+          <td style="padding:5px 8px; text-align:right; border-bottom:1px solid #eee;">
+            {% if eps.actual is not none %}{{ "{:.2f}".format(eps.actual) }}{% else %}—{% endif %}
+          </td>
+          <td style="padding:5px 8px; text-align:right; border-bottom:1px solid #eee; font-weight:600;
+               color:{% if eps.surprise_pct is not none and eps.surprise_pct >= 0 %}#27ae60{% elif eps.surprise_pct is not none %}#c0392b{% else %}#888{% endif %};">
+            {% if eps.surprise_pct is not none %}{{ "{:+.1f}".format(eps.surprise_pct) }}%{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% endif %}
+
     <div style="background:#fff8e1; border-left:4px solid #f39c12; padding:12px 16px; border-radius:4px; font-size:13px; color:#7d6608; margin-bottom:20px;">
       <strong>Reminder:</strong> LTCG tax is 10% above ₹1 lakh annual gains. Review your overall LTCG book before deciding to sell.
     </div>
@@ -106,7 +234,7 @@
          border-left:4px solid {% if c.critical %}#c0392b{% elif c.warning %}#f39c12{% else %}#27ae60{% endif %};
          color:{% if c.critical %}#922b21{% elif c.warning %}#7d6608{% else %}#1a5e34{% endif %};">
       Trade Compliance · {{ c.quarter.replace('_', ' ') }}: {{ c.used }} of {{ c.limit }} block trades used · {{ c.remaining }} remaining
-      {% if c.critical %} ⚠️ CRITICAL — near quarterly limit{% elif c.warning %} ⚠️ WARNING — 80%+ used{% endif %}
+      {% if c.critical %} &#9888; CRITICAL — near quarterly limit{% elif c.warning %} &#9888; WARNING — 80%+ used{% endif %}
     </div>
     {% endif %}
 
