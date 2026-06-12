@@ -88,6 +88,8 @@ class AppConfig:
     ma_crossover: MaCrossoverConfig = field(default_factory=MaCrossoverConfig)
     data_sources: DataSourcesConfig = field(default_factory=DataSourcesConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    portfolio_owner: str = ""   # Display name shown in email header, e.g. "Surender Kaur"
+    zerodha_id: str = ""        # Zerodha client ID shown in email header, e.g. "XFG529"
 
 
 def load_config(path: Path) -> AppConfig:
@@ -156,6 +158,8 @@ def load_config(path: Path) -> AppConfig:
         retain_days=int(log_raw.get("retain_days", 90)),
     )
 
+    portfolio_raw = raw.get("portfolio", {})
+
     return AppConfig(
         alerts=alerts_cfg,
         sell_near_high=snh_cfg,
@@ -164,4 +168,6 @@ def load_config(path: Path) -> AppConfig:
         ma_crossover=mac_cfg,
         data_sources=ds_cfg,
         logging=log_cfg,
+        portfolio_owner=str(portfolio_raw.get("owner", "")),
+        zerodha_id=str(portfolio_raw.get("zerodha_id", "")),
     )

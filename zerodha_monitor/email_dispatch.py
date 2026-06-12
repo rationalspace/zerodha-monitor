@@ -24,8 +24,10 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
 class EmailDispatcher:
-    def __init__(self, cfg: EmailConfig) -> None:
+    def __init__(self, cfg: EmailConfig, *, portfolio_owner: str = "", zerodha_id: str = "") -> None:
         self.cfg = cfg
+        self.portfolio_owner = portfolio_owner
+        self.zerodha_id = zerodha_id
         self.env = Environment(
             loader=FileSystemLoader(str(TEMPLATE_DIR)),
             autoescape=select_autoescape(["html"]),
@@ -36,7 +38,8 @@ class EmailDispatcher:
     def send_alert(self, alert: Alert, *, dry_run: bool = False) -> None:
         template = self.env.get_template("india_alert.html.j2")
         html = template.render(alert=alert, p=alert.payload)
-        subject = f"[INDIA] {alert.title}"
+        owner_tag = f" {self.portfolio_owner}" if self.portfolio_owner else ""
+        subject = f"[INDIA{owner_tag}] {alert.title}"
         self._send(subject=subject, html=html, dry_run=dry_run)
 
     def send_digest(self, alerts: list[Alert], data_date: date, *, dry_run: bool = False) -> None:
@@ -59,7 +62,8 @@ class EmailDispatcher:
         summary = " | ".join(parts) if parts else f"{len(alerts)} alerts"
 
         date_str = data_date.strftime("%b %d")
-        subject  = f"[INDIA {date_str}] {len(alerts)} alerts — {summary}"
+        owner_tag = f" {self.portfolio_owner}" if self.portfolio_owner else ""
+        subject  = f"[INDIA{owner_tag} {date_str}] {len(alerts)} alerts — {summary}"
 
         template = self.env.get_template("india_digest.html.j2")
         html = template.render(
@@ -69,22 +73,26 @@ class EmailDispatcher:
             profitable=profitable,
             losses=losses,
             total=len(alerts),
+            portfolio_owner=self.portfolio_owner,
+            zerodha_id=self.zerodha_id,
         )
         self._send(subject=subject, html=html, dry_run=dry_run)
 
     def _send(self, *, subject: str, html: str, dry_run: bool) -> None:
         from_address = self.cfg.from_address or get_secret("gmail_address")
-        to_address = self.cfg.to_address
+        # Support comma-separated recipients in to_address
+        recipients = [r.strip() for r in self.cfg.to_address.split(",") if r.strip()]
+        to_header  = ", ".join(recipients)
 
         msg = EmailMessage()
         msg["Subject"] = subject
         msg["From"] = from_address
-        msg["To"] = to_address
+        msg["To"] = to_header
         msg.set_content("This email requires an HTML-capable client.")
         msg.add_alternative(html, subtype="html")
 
         if dry_run:
-            log.info("[DRY-RUN] Would send: %r → %s", subject, to_address)
+            log.info("[DRY-RUN] Would send: %r → %s", subject, to_header)
             return
 
         password = get_secret("gmail_app_password")
@@ -92,4 +100,4 @@ class EmailDispatcher:
             server.starttls()
             server.login(from_address, password)
             server.send_message(msg)
-        log.info("Sent: %r", subject)
+        log.info("Sent: %r → %s", subject, to_header)

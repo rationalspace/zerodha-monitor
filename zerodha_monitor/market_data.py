@@ -550,5 +550,8 @@ class MarketDataForDate:
     def fundamentals(self, symbol: str) -> FundamentalsSnapshot:
         return self._market.fundamentals(symbol)
 
+    def ma_crossover(self, symbol: str) -> dict:
+        return self._market.ma_crossover(symbol)
+
     def batch_snapshots(self, symbols: list[str]) -> dict[str, PriceSnapshot | None]:
         return {sym: self.snapshot(sym) for sym in symbols}
