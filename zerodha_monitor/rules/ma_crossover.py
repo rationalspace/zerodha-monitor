@@ -66,6 +66,35 @@ class MaCrossoverRule:
             snap   = market.snapshot(symbol)
             price  = snap.price if snap else None
 
+            # ── Recovery gates for golden cross on loss positions ────────────
+            # A golden cross on a stock still deeply underwater is noise.
+            # Only fire if the same gates as bounce_alert pass:
+            #   require_consecutive_days: 3+ consecutive up days
+            #   require_near_breakeven:   price within threshold of avg cost
+            if cross.get("golden") and snap is not None and price is not None:
+                at_loss = price < holding.average_cost
+                if at_loss:
+                    ba_cfg = self.config.bounce_alert
+                    if ba_cfg.require_consecutive_days:
+                        has_consec = (
+                            snap.consecutive_up_days is not None
+                            and snap.consecutive_up_days >= ba_cfg.consecutive_up_days
+                        )
+                        if not has_consec:
+                            log.debug(
+                                "%s golden cross suppressed: require_consecutive_days not met (%s days)",
+                                symbol, snap.consecutive_up_days,
+                            )
+                            continue
+                    if ba_cfg.require_near_breakeven:
+                        floor = holding.average_cost * (1 - ba_cfg.near_breakeven_threshold)
+                        if price < floor:
+                            log.debug(
+                                "%s golden cross suppressed: price ₹%.0f still below breakeven floor ₹%.0f",
+                                symbol, price, floor,
+                            )
+                            continue
+
             ma50_str  = f"₹{ma50:,.0f}"  if ma50  else "—"
             ma200_str = f"₹{ma200:,.0f}" if ma200 else "—"
             gap_abs   = abs((gap or 0) * (ma200 or 0))
