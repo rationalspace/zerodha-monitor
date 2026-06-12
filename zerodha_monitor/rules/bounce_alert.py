@@ -135,6 +135,28 @@ class BounceAlertRule:
                 )
                 continue
 
+            # ── Strict gates (opt-in per config) ────────────────────────────
+            if cfg.require_consecutive_days:
+                has_consec = (
+                    snap.consecutive_up_days is not None
+                    and snap.consecutive_up_days >= cfg.consecutive_up_days
+                )
+                if not has_consec:
+                    log.debug(
+                        "%s: require_consecutive_days gate failed (%s consecutive days)",
+                        holding.symbol, snap.consecutive_up_days,
+                    )
+                    continue
+
+            if cfg.require_near_breakeven:
+                floor = holding.average_cost * (1 - cfg.near_breakeven_threshold)
+                if snap.price < floor:
+                    log.debug(
+                        "%s: require_near_breakeven gate failed (price ₹%.0f < floor ₹%.0f)",
+                        holding.symbol, snap.price, floor,
+                    )
+                    continue
+
             # ── Phase 3: Bounce quality tier ─────────────────────────────────
             bounce_quality, bounce_summary = _bounce_quality_info(snap, rsi)
 

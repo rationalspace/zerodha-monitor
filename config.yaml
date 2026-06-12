@@ -33,6 +33,9 @@ bounce_alert:
   consecutive_up_days: 3
   five_day_pct: 0.05
   ma50_reclaim_as_trigger: true   # Phase 3: also trigger when price reclaims the 50-day average
+  require_consecutive_days: true  # Must have 3+ consecutive up days (not just RSI alone)
+  require_near_breakeven: true    # Only alert if within 10% of cost basis
+  near_breakeven_threshold: 0.10
 
 # MA Crossover — Phase 4
 # Detects when 50-day average crosses the 200-day average for any held position.

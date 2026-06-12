@@ -59,6 +59,10 @@ class BounceAlertConfig:
     consecutive_up_days: int = 3            # Or 3+ consecutive up days
     five_day_pct: float = 0.05             # Or 5% 5-day rally
     ma50_reclaim_as_trigger: bool = True    # Phase 3: also trigger when price reclaims 50-day average
+    # Stricter gates (disabled by default — enable per-portfolio in config)
+    require_consecutive_days: bool = False  # When True: consecutive up days must be present (AND, not OR)
+    require_near_breakeven: bool = False    # When True: only fire if price is within near_breakeven_threshold of cost
+    near_breakeven_threshold: float = 0.10 # "Near breakeven" = price >= avg_cost × (1 - this). 0.10 = within 10%
 
 
 @dataclass
@@ -139,6 +143,9 @@ def load_config(path: Path) -> AppConfig:
         consecutive_up_days=int(ba_raw.get("consecutive_up_days", 3)),
         five_day_pct=float(ba_raw.get("five_day_pct", 0.05)),
         ma50_reclaim_as_trigger=bool(ba_raw.get("ma50_reclaim_as_trigger", True)),
+        require_consecutive_days=bool(ba_raw.get("require_consecutive_days", False)),
+        require_near_breakeven=bool(ba_raw.get("require_near_breakeven", False)),
+        near_breakeven_threshold=float(ba_raw.get("near_breakeven_threshold", 0.10)),
     )
 
     mac_raw = raw.get("ma_crossover", {})
