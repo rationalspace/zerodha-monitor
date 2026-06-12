@@ -133,27 +133,42 @@ class SellNearHighRule:
             # Fires on ANY of: low analyst target, overbought RSI, near upper BB, stretched above MA50.
             exhaustion_signals: list[str] = []
             if cfg.require_exhaustion_signal:
-                if analyst_upside is not None and analyst_upside <= cfg.exhaustion_max_analyst_upside:
+                # Analyst upside fires on its own — if street sees little room left, that's enough.
+                analyst_low = (
+                    analyst_upside is not None
+                    and analyst_upside <= cfg.exhaustion_max_analyst_upside
+                )
+                if analyst_low:
                     exhaustion_signals.append(
                         f"analysts see only {analyst_upside:+.0%} upside left"
                     )
-                if rsi is not None and rsi >= cfg.exhaustion_rsi_overbought:
-                    exhaustion_signals.append(
-                        f"momentum looks stretched (RSI {rsi:.0f} — overbought territory)"
-                    )
-                if snap.bb_pct_b is not None and snap.bb_pct_b >= cfg.exhaustion_bb_pct_b:
-                    exhaustion_signals.append(
-                        f"at the upper edge of its recent trading range ({snap.bb_pct_b:.0%} of band)"
-                    )
-                if snap.ma50 and snap.price >= snap.ma50 * (1 + cfg.exhaustion_ma50_extension):
-                    pct_above = (snap.price / snap.ma50 - 1)
-                    exhaustion_signals.append(
-                        f"price is {pct_above:.0%} above its 50-day average — extended above trend"
-                    )
+
+                # Technical signals (RSI, BB, MA50 extension) are only counted when
+                # analyst data either agrees (low upside) or isn't available.
+                # If analysts still see >10% upside, treat technical noise as a false alarm.
+                technicals_unblocked = (
+                    analyst_upside is None
+                    or analyst_upside <= cfg.exhaustion_max_analyst_upside
+                )
+                if technicals_unblocked:
+                    if rsi is not None and rsi >= cfg.exhaustion_rsi_overbought:
+                        exhaustion_signals.append(
+                            f"momentum looks stretched (RSI {rsi:.0f} — overbought territory)"
+                        )
+                    if snap.bb_pct_b is not None and snap.bb_pct_b >= cfg.exhaustion_bb_pct_b:
+                        exhaustion_signals.append(
+                            f"at the upper edge of its recent trading range ({snap.bb_pct_b:.0%} of band)"
+                        )
+                    if snap.ma50 and snap.price >= snap.ma50 * (1 + cfg.exhaustion_ma50_extension):
+                        pct_above = snap.price / snap.ma50 - 1
+                        exhaustion_signals.append(
+                            f"price is {pct_above:.0%} above its 50-day average — extended above trend"
+                        )
+
                 if not exhaustion_signals:
                     log.debug(
-                        "%s: near ATH but no exhaustion signals — suppressing",
-                        holding.symbol,
+                        "%s: near ATH but no exhaustion signals (analyst upside %.0f%% blocks technicals) — suppressing",
+                        holding.symbol, (analyst_upside or 0) * 100,
                     )
                     continue
 
