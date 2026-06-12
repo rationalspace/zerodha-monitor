@@ -29,12 +29,11 @@ class SellNearHighConfig:
     long_term_only: bool = True
     min_history_days: int = 365   # Require at least this many calendar days of data
     profitable_only: bool = True  # Skip if current price < average cost
-    # Exhaustion gate — require at least one "topping" signal before alerting.
-    # Catches near-ATH stocks where upside really is running out.
-    require_exhaustion_signal: bool = False
+    # Topping signal thresholds — used for context and severity, not as a hard gate.
+    # HIGH severity when signals present; MEDIUM when near ATH but signals absent.
     exhaustion_max_analyst_upside: float = 0.10   # Analyst consensus sees ≤ this % upside left
     exhaustion_rsi_overbought: float = 70.0        # RSI ≥ this → momentum stretched
-    exhaustion_bb_pct_b: float = 0.80              # BB %B ≥ this → near upper Bollinger Band
+    exhaustion_bb_pct_b: float = 0.90              # BB %B ≥ this → very top of recent range
     exhaustion_ma50_extension: float = 0.10        # Price ≥ this % above MA50 → stretched above trend
 
 
@@ -53,7 +52,7 @@ class ExitMomentumConfig:
     rally_consecutive_days: int = 3
     # Analyst proximity gate for profitable positions:
     # Suppress alert if analyst upside > this. Default 7% = only alert when ≤7% upside remains.
-    profitable_max_analyst_upside: float = 0.07
+    profitable_max_analyst_upside: float = 0.20
     # Break-even gate for loss positions:
     # Fire when price >= avg_cost × (1 + break_even_buffer). Default 0.0 = exactly at break-even.
     break_even_buffer: float = 0.0
@@ -126,10 +125,9 @@ def load_config(path: Path) -> AppConfig:
         long_term_only=bool(snh_raw.get("long_term_only", True)),
         min_history_days=int(snh_raw.get("min_history_days", 365)),
         profitable_only=bool(snh_raw.get("profitable_only", True)),
-        require_exhaustion_signal=bool(snh_raw.get("require_exhaustion_signal", False)),
         exhaustion_max_analyst_upside=float(snh_raw.get("exhaustion_max_analyst_upside", 0.10)),
         exhaustion_rsi_overbought=float(snh_raw.get("exhaustion_rsi_overbought", 70.0)),
-        exhaustion_bb_pct_b=float(snh_raw.get("exhaustion_bb_pct_b", 0.80)),
+        exhaustion_bb_pct_b=float(snh_raw.get("exhaustion_bb_pct_b", 0.90)),
         exhaustion_ma50_extension=float(snh_raw.get("exhaustion_ma50_extension", 0.10)),
     )
 

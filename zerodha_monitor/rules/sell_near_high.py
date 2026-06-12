@@ -128,49 +128,34 @@ class SellNearHighRule:
             if fund and fund.analyst_target_mean and snap.price:
                 analyst_upside = (fund.analyst_target_mean - snap.price) / snap.price
 
-            # ── Exhaustion gate ───────────────────────────────────────────────
-            # Require at least one signal that upside is running out.
-            # Fires on ANY of: low analyst target, overbought RSI, near upper BB, stretched above MA50.
-            exhaustion_signals: list[str] = []
-            if cfg.require_exhaustion_signal:
-                # Analyst upside fires on its own — if street sees little room left, that's enough.
-                analyst_low = (
-                    analyst_upside is not None
-                    and analyst_upside <= cfg.exhaustion_max_analyst_upside
+            # ── Topping signals (context, not gate) ──────────────────────────
+            # Computed independently and shown in the email body/title to add
+            # colour to the alert. They do NOT gate whether the alert fires —
+            # being near ATH while profitable is enough of a reason to flag the
+            # stock for a bearish investor looking for exit windows.
+            topping_signals: list[str] = []
+            if analyst_upside is not None and analyst_upside <= cfg.exhaustion_max_analyst_upside:
+                topping_signals.append(
+                    f"analysts see only {analyst_upside:+.0%} upside left"
                 )
-                if analyst_low:
-                    exhaustion_signals.append(
-                        f"analysts see only {analyst_upside:+.0%} upside left"
-                    )
-
-                # Technical signals (RSI, BB, MA50 extension) are only counted when
-                # analyst data either agrees (low upside) or isn't available.
-                # If analysts still see >10% upside, treat technical noise as a false alarm.
-                technicals_unblocked = (
-                    analyst_upside is None
-                    or analyst_upside <= cfg.exhaustion_max_analyst_upside
+            if rsi is not None and rsi >= cfg.exhaustion_rsi_overbought:
+                topping_signals.append(
+                    f"momentum looks stretched (RSI {rsi:.0f} — overbought territory)"
                 )
-                if technicals_unblocked:
-                    if rsi is not None and rsi >= cfg.exhaustion_rsi_overbought:
-                        exhaustion_signals.append(
-                            f"momentum looks stretched (RSI {rsi:.0f} — overbought territory)"
-                        )
-                    if snap.bb_pct_b is not None and snap.bb_pct_b >= cfg.exhaustion_bb_pct_b:
-                        exhaustion_signals.append(
-                            f"at the upper edge of its recent trading range ({snap.bb_pct_b:.0%} of band)"
-                        )
-                    if snap.ma50 and snap.price >= snap.ma50 * (1 + cfg.exhaustion_ma50_extension):
-                        pct_above = snap.price / snap.ma50 - 1
-                        exhaustion_signals.append(
-                            f"price is {pct_above:.0%} above its 50-day average — extended above trend"
-                        )
+            if snap.bb_pct_b is not None and snap.bb_pct_b >= cfg.exhaustion_bb_pct_b:
+                topping_signals.append(
+                    f"at the upper edge of its recent trading range ({snap.bb_pct_b:.0%} of band)"
+                )
+            if snap.ma50 and snap.price >= snap.ma50 * (1 + cfg.exhaustion_ma50_extension):
+                pct_above = snap.price / snap.ma50 - 1
+                topping_signals.append(
+                    f"price is {pct_above:.0%} above its 50-day average — extended above trend"
+                )
 
-                if not exhaustion_signals:
-                    log.debug(
-                        "%s: near ATH but no exhaustion signals (analyst upside %.0f%% blocks technicals) — suppressing",
-                        holding.symbol, (analyst_upside or 0) * 100,
-                    )
-                    continue
+            # Severity: HIGH when signals confirm upside is running out;
+            # MEDIUM when near ATH but technicals/analysts don't yet confirm —
+            # still worth knowing, just less urgent.
+            severity = Severity.HIGH if topping_signals else Severity.MEDIUM
 
             ltcg_tax = unrealized_pl * 0.125 if unrealized_pl > 0 else 0.0
 
@@ -206,38 +191,40 @@ class SellNearHighRule:
                 "analyst_target": fund.analyst_target_mean if fund else None,
                 "analyst_recommendation": fund.analyst_recommendation if fund else None,
                 "eps_history": fund.eps_history if fund else [],
-                "exhaustion_signals": exhaustion_signals,
+                "exhaustion_signals": topping_signals,
             }
 
-            # Title: plain English reason why this is a real exit signal
-            if exhaustion_signals:
-                first_signal = exhaustion_signals[0]
+            data_date_str = snap.data_date.strftime("%b %d") if snap.data_date else "unknown date"
+            if topping_signals:
+                first_signal = topping_signals[0]
                 title = (
                     f"{holding.symbol} near all-time high — upside looks limited"
                     f" ({first_signal})"
                 )
+                signals_str = " Signals: " + "; ".join(topping_signals) + "."
             else:
                 title = (
                     f"{holding.symbol} at {snap.ath_pct:.0%} of ATH"
-                    f" — consider selling (LTCG eligible)"
+                    f" — potential exit window (analysts still see upside)"
                 )
-            data_date_str = snap.data_date.strftime("%b %d") if snap.data_date else "unknown date"
-            exhaustion_str = (
-                " Signals that upside is running out: " + "; ".join(exhaustion_signals) + "."
-                if exhaustion_signals else ""
-            )
+                analyst_str = (
+                    f" Analyst target implies {analyst_upside:+.0%} upside."
+                    if analyst_upside is not None else ""
+                )
+                signals_str = analyst_str
+
             body = (
                 f"⚠️ Data as of {data_date_str} — verify live price in Zerodha before acting. "
                 f"Price ₹{snap.price:,.2f} is {snap.ath_pct:.0%} of ATH ₹{snap.ath:,.2f}. "
                 f"Unrealized gain: {unrealized_pl_pct:+.1%} (₹{unrealized_pl:+,.0f})."
-                f"{exhaustion_str}"
+                f"{signals_str}"
             )
 
             alerts.append(
                 Alert(
                     symbol=holding.symbol,
                     rule=self.name,
-                    severity=Severity.HIGH,
+                    severity=severity,
                     title=title,
                     body=body,
                     payload=payload,

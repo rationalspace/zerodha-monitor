@@ -42,6 +42,9 @@ def _snap(symbol="INFY", price=1000.0, ath=1100.0, high_52w=1050.0,
 def _market(snaps: dict[str, PriceSnapshot | None]) -> MagicMock:
     m = MagicMock()
     m.snapshot.side_effect = lambda sym: snaps.get(sym.upper())
+    # Topping signals are now always computed — return safe defaults so comparisons don't fail.
+    m.rsi_14.return_value = None
+    m.fundamentals.return_value = None
     return m
 
 
@@ -153,10 +156,26 @@ class TestSellNearHighRule:
         assert "INFY" in alerts[0].title
         assert "85%" in alerts[0].title
 
-    def test_severity_is_high(self):
+    def test_severity_medium_without_signals(self):
+        # No rsi/bb/analyst signals → MEDIUM (near ATH but no confirmation)
         snap = _snap(price=1000.0, ath=1100.0)
         rule = SellNearHighRule(_config())
         alerts = rule.evaluate([_holding()], _market({"INFY": snap}))
+        from zerodha_monitor.rules.sell_near_high import Severity
+        assert alerts[0].severity == Severity.MEDIUM
+
+    def test_severity_high_with_low_analyst_upside(self):
+        snap = _snap(price=1000.0, ath=1100.0)
+        rule = SellNearHighRule(_config())
+        market = _market({"INFY": snap})
+        fund = MagicMock()
+        fund.analyst_target_mean = 1050.0   # +5% upside → analyst signal fires → HIGH
+        fund.analyst_target_high = None; fund.analyst_target_low = None
+        fund.analyst_recommendation = None; fund.analyst_count = None
+        fund.trailing_pe = None; fund.forward_pe = None
+        fund.revenue_yoy = None; fund.op_margin = None; fund.eps_history = []
+        market.fundamentals.return_value = fund
+        alerts = rule.evaluate([_holding()], market)
         from zerodha_monitor.rules.sell_near_high import Severity
         assert alerts[0].severity == Severity.HIGH
 

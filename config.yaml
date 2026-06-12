@@ -9,15 +9,17 @@ alerts:
     to_address: mandeepmakkar@gmail.com
 
 # Sell-near-high rule
+# Fires whenever a profitable long-term holding is near its ATH.
+# Topping signals (analyst, RSI, BB, MA50) are shown as context and set severity
+# (HIGH = signals confirm limited upside; MEDIUM = near ATH but analysts still see room).
 sell_near_high:
   enabled: true
   ath_threshold_pct: 0.85       # Alert when price >= 85% of all-time high
   long_term_only: true          # Only alert if holding is marked long_term: true in holdings.yaml
-  require_exhaustion_signal: true
-  exhaustion_max_analyst_upside: 0.10   # Analyst target implies ≤10% left
-  exhaustion_rsi_overbought: 70.0       # RSI ≥ 70 = momentum stretched
-  exhaustion_bb_pct_b: 0.80             # BB %B ≥ 0.80 = near upper band
-  exhaustion_ma50_extension: 0.10       # Price ≥ 10% above MA50 = extended
+  exhaustion_max_analyst_upside: 0.10   # Analyst target ≤10% left → HIGH severity signal
+  exhaustion_rsi_overbought: 70.0       # RSI ≥ 70 → momentum stretched signal
+  exhaustion_bb_pct_b: 0.90             # BB %B ≥ 0.90 → very top of recent range signal
+  exhaustion_ma50_extension: 0.10       # Price ≥ 10% above MA50 → extended above trend signal
 
 # Exit momentum rule — fires for exit_now, exit_soon, sell_on_rally tiers
 exit_momentum:
@@ -30,6 +32,7 @@ exit_momentum:
   rally_day_pop_pct: 0.03
   rally_five_day_pct: 0.06
   rally_consecutive_days: 3
+  profitable_max_analyst_upside: 0.20   # Suppress sell_on_rally/exit_soon if analysts see >20% upside; no gate for exit_now
 
 # Bounce alert rule — fires for wait_for_bounce tier when recovery signals appear
 bounce_alert:

@@ -193,11 +193,15 @@ class ExitMomentumRule:
                 if fund and fund.analyst_target_mean and snap.price:
                     analyst_upside = (fund.analyst_target_mean - snap.price) / snap.price
 
-                gate = cfg.profitable_max_analyst_upside
-                if gate is not None and analyst_upside is not None and analyst_upside > gate:
-                    log.info("GATE %s: profitable, %.1f%% analyst upside > %.0f%% gate",
-                             holding.symbol, analyst_upside * 100, gate * 100)
-                    continue
+                # exit_now: no analyst gate — if you've decided to exit, exit.
+                # Other tiers: suppress only if analyst still sees substantial upside (>20%),
+                # which suggests the stock genuinely has more room and selling now is premature.
+                if not is_exit_now:
+                    gate = cfg.profitable_max_analyst_upside
+                    if gate is not None and analyst_upside is not None and analyst_upside > gate:
+                        log.info("GATE %s: profitable, %.1f%% analyst upside > %.0f%% gate",
+                                 holding.symbol, analyst_upside * 100, gate * 100)
+                        continue
 
                 triggers_str  = ", ".join(triggers)
                 data_date_str = snap.data_date.strftime("%b %d") if snap.data_date else "?"
