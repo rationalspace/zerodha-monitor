@@ -128,6 +128,18 @@ class SellNearHighRule:
             if fund and fund.analyst_target_mean and snap.price:
                 analyst_upside = (fund.analyst_target_mean - snap.price) / snap.price
 
+            # Gate: suppress if analysts still see meaningful upside
+            if (
+                cfg.max_analyst_upside is not None
+                and analyst_upside is not None
+                and analyst_upside >= cfg.max_analyst_upside
+            ):
+                log.debug(
+                    "%s: analyst upside %.1f%% >= gate %.1f%% — suppressing sell-near-high",
+                    holding.symbol, analyst_upside * 100, cfg.max_analyst_upside * 100,
+                )
+                continue
+
             ltcg_tax = unrealized_pl * 0.125 if unrealized_pl > 0 else 0.0
 
             payload = {

@@ -29,6 +29,7 @@ class SellNearHighConfig:
     long_term_only: bool = True
     min_history_days: int = 365   # Require at least this many calendar days of data
     profitable_only: bool = True  # Skip if current price < average cost
+    max_analyst_upside: float | None = None  # Suppress if analysts see more upside than this (e.g. 0.10 = 10%)
 
 
 @dataclass
@@ -113,12 +114,14 @@ def load_config(path: Path) -> AppConfig:
     )
 
     snh_raw = raw.get("sell_near_high", {})
+    raw_mau = snh_raw.get("max_analyst_upside")
     snh_cfg = SellNearHighConfig(
         enabled=bool(snh_raw.get("enabled", True)),
         ath_threshold_pct=float(snh_raw.get("ath_threshold_pct", 0.85)),
         long_term_only=bool(snh_raw.get("long_term_only", True)),
         min_history_days=int(snh_raw.get("min_history_days", 365)),
         profitable_only=bool(snh_raw.get("profitable_only", True)),
+        max_analyst_upside=float(raw_mau) if raw_mau is not None else None,
     )
 
     em_raw = raw.get("exit_momentum", {})

@@ -13,6 +13,7 @@ sell_near_high:
   enabled: true
   ath_threshold_pct: 0.85       # Alert when price >= 85% of all-time high
   long_term_only: true          # Only alert if holding is marked long_term: true in holdings.yaml
+  max_analyst_upside: 0.10      # Suppress if analysts see >10% upside — stock likely has more room
 
 # Exit momentum rule — fires for exit_now, exit_soon, sell_on_rally tiers
 exit_momentum:
