@@ -29,7 +29,13 @@ class SellNearHighConfig:
     long_term_only: bool = True
     min_history_days: int = 365   # Require at least this many calendar days of data
     profitable_only: bool = True  # Skip if current price < average cost
-    max_analyst_upside: float | None = None  # Suppress if analysts see more upside than this (e.g. 0.10 = 10%)
+    # Exhaustion gate — require at least one "topping" signal before alerting.
+    # Catches near-ATH stocks where upside really is running out.
+    require_exhaustion_signal: bool = False
+    exhaustion_max_analyst_upside: float = 0.10   # Analyst consensus sees ≤ this % upside left
+    exhaustion_rsi_overbought: float = 70.0        # RSI ≥ this → momentum stretched
+    exhaustion_bb_pct_b: float = 0.80              # BB %B ≥ this → near upper Bollinger Band
+    exhaustion_ma50_extension: float = 0.10        # Price ≥ this % above MA50 → stretched above trend
 
 
 @dataclass
@@ -114,14 +120,17 @@ def load_config(path: Path) -> AppConfig:
     )
 
     snh_raw = raw.get("sell_near_high", {})
-    raw_mau = snh_raw.get("max_analyst_upside")
     snh_cfg = SellNearHighConfig(
         enabled=bool(snh_raw.get("enabled", True)),
         ath_threshold_pct=float(snh_raw.get("ath_threshold_pct", 0.85)),
         long_term_only=bool(snh_raw.get("long_term_only", True)),
         min_history_days=int(snh_raw.get("min_history_days", 365)),
         profitable_only=bool(snh_raw.get("profitable_only", True)),
-        max_analyst_upside=float(raw_mau) if raw_mau is not None else None,
+        require_exhaustion_signal=bool(snh_raw.get("require_exhaustion_signal", False)),
+        exhaustion_max_analyst_upside=float(snh_raw.get("exhaustion_max_analyst_upside", 0.10)),
+        exhaustion_rsi_overbought=float(snh_raw.get("exhaustion_rsi_overbought", 70.0)),
+        exhaustion_bb_pct_b=float(snh_raw.get("exhaustion_bb_pct_b", 0.80)),
+        exhaustion_ma50_extension=float(snh_raw.get("exhaustion_ma50_extension", 0.10)),
     )
 
     em_raw = raw.get("exit_momentum", {})

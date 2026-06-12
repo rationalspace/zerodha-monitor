@@ -128,17 +128,34 @@ class SellNearHighRule:
             if fund and fund.analyst_target_mean and snap.price:
                 analyst_upside = (fund.analyst_target_mean - snap.price) / snap.price
 
-            # Gate: suppress if analysts still see meaningful upside
-            if (
-                cfg.max_analyst_upside is not None
-                and analyst_upside is not None
-                and analyst_upside >= cfg.max_analyst_upside
-            ):
-                log.debug(
-                    "%s: analyst upside %.1f%% >= gate %.1f%% — suppressing sell-near-high",
-                    holding.symbol, analyst_upside * 100, cfg.max_analyst_upside * 100,
-                )
-                continue
+            # ── Exhaustion gate ───────────────────────────────────────────────
+            # Require at least one signal that upside is running out.
+            # Fires on ANY of: low analyst target, overbought RSI, near upper BB, stretched above MA50.
+            exhaustion_signals: list[str] = []
+            if cfg.require_exhaustion_signal:
+                if analyst_upside is not None and analyst_upside <= cfg.exhaustion_max_analyst_upside:
+                    exhaustion_signals.append(
+                        f"analysts see only {analyst_upside:+.0%} upside left"
+                    )
+                if rsi is not None and rsi >= cfg.exhaustion_rsi_overbought:
+                    exhaustion_signals.append(
+                        f"momentum looks stretched (RSI {rsi:.0f} — overbought territory)"
+                    )
+                if snap.bb_pct_b is not None and snap.bb_pct_b >= cfg.exhaustion_bb_pct_b:
+                    exhaustion_signals.append(
+                        f"at the upper edge of its recent trading range ({snap.bb_pct_b:.0%} of band)"
+                    )
+                if snap.ma50 and snap.price >= snap.ma50 * (1 + cfg.exhaustion_ma50_extension):
+                    pct_above = (snap.price / snap.ma50 - 1)
+                    exhaustion_signals.append(
+                        f"price is {pct_above:.0%} above its 50-day average — extended above trend"
+                    )
+                if not exhaustion_signals:
+                    log.debug(
+                        "%s: near ATH but no exhaustion signals — suppressing",
+                        holding.symbol,
+                    )
+                    continue
 
             ltcg_tax = unrealized_pl * 0.125 if unrealized_pl > 0 else 0.0
 
@@ -174,18 +191,31 @@ class SellNearHighRule:
                 "analyst_target": fund.analyst_target_mean if fund else None,
                 "analyst_recommendation": fund.analyst_recommendation if fund else None,
                 "eps_history": fund.eps_history if fund else [],
+                "exhaustion_signals": exhaustion_signals,
             }
 
-            title = (
-                f"{holding.symbol} at {snap.ath_pct:.0%} of ATH"
-                f" — consider selling (LTCG eligible)"
-            )
+            # Title: plain English reason why this is a real exit signal
+            if exhaustion_signals:
+                first_signal = exhaustion_signals[0]
+                title = (
+                    f"{holding.symbol} near all-time high — upside looks limited"
+                    f" ({first_signal})"
+                )
+            else:
+                title = (
+                    f"{holding.symbol} at {snap.ath_pct:.0%} of ATH"
+                    f" — consider selling (LTCG eligible)"
+                )
             data_date_str = snap.data_date.strftime("%b %d") if snap.data_date else "unknown date"
+            exhaustion_str = (
+                " Signals that upside is running out: " + "; ".join(exhaustion_signals) + "."
+                if exhaustion_signals else ""
+            )
             body = (
                 f"⚠️ Data as of {data_date_str} — verify live price in Zerodha before acting. "
                 f"Price ₹{snap.price:,.2f} is {snap.ath_pct:.0%} of ATH ₹{snap.ath:,.2f}. "
-                f"Unrealized gain: {unrealized_pl_pct:+.1%} (₹{unrealized_pl:+,.0f}). "
-                f"Position value: ₹{current_value:,.0f}."
+                f"Unrealized gain: {unrealized_pl_pct:+.1%} (₹{unrealized_pl:+,.0f})."
+                f"{exhaustion_str}"
             )
 
             alerts.append(
