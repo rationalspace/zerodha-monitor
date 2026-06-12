@@ -97,9 +97,9 @@ config.yaml    ──► config_loader.py
 
 ## Scheduling
 
-- **Indian market closes** 3:30 PM IST = ~5:00 AM CDT
-- **launchd fires** every 30 min from 5:30–9:00 AM CDT, Mon–Fri
-- **Catch-up logic**: fires on Mac wake-up if the window was missed
+- **Indian market closes** 3:30 PM IST = ~10:00 UTC
+- **launchd fires every 30 min** from laptop wake/login — no fixed time window
+- **run_guarded skips** automatically if before market close (10:30 UTC), weekend, or already ran today
 - **Per-date deduplication**: each trading date's digest is only sent once
 - **7-day cooldown** per (symbol, rule) pair — MA Crossover uses 30-day cooldown
 
@@ -144,18 +144,11 @@ Create `~/Library/LaunchAgents/com.zerodhamonitor.daily.plist`:
     <string>zerodha_monitor.scripts.run_guarded</string>
   </array>
   <key>WorkingDirectory</key><string>/Users/YOUR_USERNAME/zerodha-monitor</string>
-  <key>StartCalendarInterval</key>
-  <array>
-    <!-- fires every 30 min, 5:30–9:00 AM CDT (after NSE close at ~5:00 AM CDT) -->
-    <dict><key>Hour</key><integer>5</integer><key>Minute</key><integer>30</integer></dict>
-    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>30</integer></dict>
-    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>30</integer></dict>
-    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>30</integer></dict>
-    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
-  </array>
+  <!-- Run on login/wake, then poll every 30 min. run_guarded handles the
+       "is it actually time to run?" check — skips if before market close,
+       weekend, or already ran today. No fixed time window needed. -->
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>1800</integer>
   <key>StandardOutPath</key><string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
   <key>StandardErrorPath</key><string>/Users/YOUR_USERNAME/Library/Logs/zerodha-monitor.log</string>
 </dict>
