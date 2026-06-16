@@ -95,6 +95,27 @@ class MaCrossoverRule:
                             )
                             continue
 
+            # ── Financial context for the digest table ───────────────────────
+            # The digest template renders every alert through the same row layout
+            # (P&L, ATH%, analyst upside, LTCG) regardless of which rule fired it,
+            # so this payload needs the same fields sell_near_high/bounce_alert/
+            # exit_momentum populate — not just the crossover-specific ones.
+            cost_basis = holding.cost_basis_total
+            current_value = holding.quantity * price if price is not None else None
+            unrealized_pl = (current_value - cost_basis) if current_value is not None else None
+            unrealized_pl_pct = (unrealized_pl / cost_basis) if unrealized_pl is not None and cost_basis else None
+            ltcg_tax = unrealized_pl * 0.125 if unrealized_pl and unrealized_pl > 0 else 0.0
+
+            try:
+                fund = market.fundamentals(symbol)
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Fundamentals fetch failed for %s: %s", symbol, exc)
+                fund = None
+
+            analyst_upside = None
+            if fund and fund.analyst_target_mean and price:
+                analyst_upside = (fund.analyst_target_mean - price) / price
+
             ma50_str  = f"₹{ma50:,.0f}"  if ma50  else "—"
             ma200_str = f"₹{ma200:,.0f}" if ma200 else "—"
             gap_abs   = abs((gap or 0) * (ma200 or 0))
@@ -166,12 +187,26 @@ class MaCrossoverRule:
                 payload={
                     "symbol":    symbol,
                     "exit_tier": holding.exit_tier,
+                    "exit_note": holding.exit_note,
                     "price":     price,
                     "crossover_type": "GOLDEN" if cross.get("golden") else "DEATH",
                     "ma50":      ma50,
                     "ma200":     ma200,
                     "gap_pct":   gap,
                     "crossover_summary": summary,
+                    # Fields the digest template expects on every alert row:
+                    "cost_basis": cost_basis,
+                    "unrealized_pl": unrealized_pl,
+                    "unrealized_pl_pct": unrealized_pl_pct,
+                    "day_change_pct": snap.day_change_pct if snap else None,
+                    "ath_pct": snap.ath_pct if snap else None,
+                    "ltcg_tax": ltcg_tax,
+                    "analyst_target": fund.analyst_target_mean if fund else None,
+                    "analyst_upside": analyst_upside,
+                    "analyst_recommendation": fund.analyst_recommendation if fund else None,
+                    "analyst_count": fund.analyst_count if fund else None,
+                    "triggers": [f"{'Golden' if cross.get('golden') else 'Death'} cross: MA50 {ma50_str} / MA200 {ma200_str}"],
+                    "bounce_quality": None,
                 },
             ))
             log.info(

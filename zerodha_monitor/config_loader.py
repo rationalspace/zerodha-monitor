@@ -142,7 +142,7 @@ def load_config(path: Path) -> AppConfig:
         rally_day_pop_pct=float(em_raw.get("rally_day_pop_pct", 0.03)),
         rally_five_day_pct=float(em_raw.get("rally_five_day_pct", 0.06)),
         rally_consecutive_days=int(em_raw.get("rally_consecutive_days", 3)),
-        profitable_max_analyst_upside=float(em_raw.get("profitable_max_analyst_upside", 0.07)),
+        profitable_max_analyst_upside=float(em_raw.get("profitable_max_analyst_upside", 0.20)),
         break_even_buffer=float(em_raw.get("break_even_buffer", 0.0)),
     )
 

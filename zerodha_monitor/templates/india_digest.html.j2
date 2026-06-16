@@ -67,7 +67,7 @@
         </span><br>
         {% endif %}
         {% if p.triggers is defined %}{{ p.triggers | join(', ') }}
-        {% elif p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
+        {% elif p.ath_pct is defined and p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
         {% else %}bounce signal{% endif %}
       </td>
       <td style="padding:8px 6px;text-align:right;font-weight:600;">₹{{ "{:,.0f}".format(p.price) }}</td>
@@ -92,7 +92,7 @@
         {% if p.analyst_count %}<br><span style="color:#aaa;">({{ p.analyst_count }})</span>{% endif %}
       </td>
       <td style="padding:8px 6px;text-align:right;font-size:12px;color:#888;">
-        {% if p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }}{% else %}—{% endif %}
+        {% if p.ath_pct is defined and p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }}{% else %}—{% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -144,7 +144,7 @@
         </span><br>
         {% endif %}
         {% if p.triggers is defined %}{{ p.triggers | join(', ') }}
-        {% elif p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
+        {% elif p.ath_pct is defined and p.ath_pct is not none %}{{ "{:.0%}".format(p.ath_pct) }} of ATH
         {% else %}bounce signal{% endif %}
       </td>
       <td style="padding:8px 6px;text-align:right;font-weight:600;">₹{{ "{:,.0f}".format(p.price) }}</td>
