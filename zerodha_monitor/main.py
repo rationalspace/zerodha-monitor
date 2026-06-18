@@ -35,6 +35,36 @@ def configure_logging(level: str = "INFO") -> None:
     logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 
+def _dedup_by_symbol(alerts: list) -> list:
+    """When multiple rules fire for the same symbol on the same date, keep one entry.
+
+    Keeps the highest-severity alert and merges the extra trigger descriptions from
+    lower-priority alerts into its triggers list so no signal context is lost.
+    """
+    _SEV_RANK = {"high": 0, "medium": 1, "digest": 2}
+    seen: dict[str, int] = {}   # symbol → index in result list
+    result = []
+    for alert in alerts:
+        sym = alert.symbol.upper()
+        if sym not in seen:
+            seen[sym] = len(result)
+            result.append(alert)
+        else:
+            existing = result[seen[sym]]
+            # Merge triggers from the duplicate into the winner
+            extra_triggers = alert.payload.get("triggers") or []
+            if extra_triggers:
+                existing.payload.setdefault("triggers", [])
+                for t in extra_triggers:
+                    if t not in existing.payload["triggers"]:
+                        existing.payload["triggers"].append(t)
+            # Upgrade severity if the newcomer is higher priority
+            if _SEV_RANK.get(alert.severity.value, 9) < _SEV_RANK.get(existing.severity.value, 9):
+                existing.severity = alert.severity
+            log.debug("Dedup: merged %s/%s into %s/%s", alert.symbol, alert.rule, existing.symbol, existing.rule)
+    return result
+
+
 def _alert_sort_key(alert):
     """Profitable first (ascending analyst upside = most urgent), then losses (biggest first)."""
     pl     = alert.payload.get("unrealized_pl", 0) or 0
@@ -118,6 +148,10 @@ def run_once(
         if not date_alerts:
             log.info("No new alerts for %s", data_date)
             continue
+
+        # Deduplicate by symbol — multiple rules can fire for the same stock on the same day
+        # (e.g. exit_momentum + ma_crossover both firing). Keep highest severity; merge triggers.
+        date_alerts = _dedup_by_symbol(date_alerts)
 
         # Sort: profitable (min analyst upside first) → losses (biggest first)
         date_alerts.sort(key=_alert_sort_key)

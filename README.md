@@ -10,7 +10,7 @@ Monitors your NSE holdings across four rules and sends a single **HTML digest em
 
 | # | Rule | Applies to | Fires when |
 |---|---|---|---|
-| 1 | **Sell Near High** | Long-term profitable holdings | Price ≥ 85% of all-time high — LTCG-eligible exit window |
+| 1 | **Sell Near High** | Long-term profitable holdings **not** in an active exit tier | Price ≥ 85% of all-time high — LTCG-eligible exit window |
 | 2 | **Exit Momentum** | `exit_now`, `exit_soon`, `sell_on_rally` tiers | RSI surge, day pop, 5-day rally, or consecutive up days — hunt the exit |
 | 3 | **Bounce Alert** | `wait_for_bounce` tier | RSI recovering, consecutive up days, 5-day rally, or MA50 reclaimed — with bounce quality tier |
 | 4 | **MA Crossover** | All held positions | 50-day average crosses 200-day — golden or death cross |
@@ -36,7 +36,9 @@ Detects the exact day the 50-day average crosses the 200-day average:
 - **Death cross** on exit-tier holdings: `HIGH` — *"Trend worsening — consider acting sooner"*
 - **Death cross** on other holdings: `MEDIUM` — watch signal
 
-30-day cooldown prevents re-alerting when averages hover near each other.
+Crossover detection is date-scoped: each backfill date uses only data up to that date, so the alert fires once on the exact crossing day — not on every subsequent day the condition remains true.
+
+**Per-symbol deduplication**: when multiple rules fire for the same holding on the same date (e.g. Exit Momentum + MA Crossover both triggered), the digest shows one row per holding — highest severity wins, and all trigger descriptions are merged into it.
 
 ## Technical indicators
 

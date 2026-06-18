@@ -309,23 +309,31 @@ class IndiaMarketData:
         return self._compute_rsi(df["Close"].dropna())
 
     def ma_crossover(self, symbol: str) -> dict:
-        """Detect a golden or death MA cross firing today for an NSE symbol.
+        """Detect a golden or death MA cross as of the latest close."""
+        return self.ma_crossover_for_date(symbol, target_date=None)
 
-        Compares yesterday's MA50/MA200 with today's to find the crossing moment.
+    def ma_crossover_for_date(self, symbol: str, target_date: date | None = None) -> dict:
+        """Detect a golden or death MA cross as of target_date (latest close if None).
+
+        Compares the session before target_date's MA50/MA200 with target_date's to
+        find the exact crossing moment. Fires only on the day the cross happens —
+        not every subsequent day the condition remains true.
+
         Requires at least 201 days of history; returns all-False otherwise.
-
-        Returns dict keys:
-          golden (bool), death (bool),
-          ma50 (float | None), ma200 (float | None),
-          gap_pct (float | None)  — positive = MA50 above MA200
         """
+        _EMPTY = {"golden": False, "death": False, "ma50": None, "ma200": None, "gap_pct": None}
         yf_sym = self._resolve(symbol)
         if yf_sym is None:
-            return {"golden": False, "death": False, "ma50": None, "ma200": None, "gap_pct": None}
+            return _EMPTY
         hist = self._history(yf_sym, "max")
         closes = hist["Close"].dropna()
+
+        if target_date is not None:
+            # Keep only sessions on or before target_date
+            closes = closes[closes.index.date <= target_date]
+
         if len(closes) < 201:
-            return {"golden": False, "death": False, "ma50": None, "ma200": None, "gap_pct": None}
+            return _EMPTY
 
         ma50_today  = float(closes.tail(50).mean())
         ma50_yest   = float(closes.iloc[:-1].tail(50).mean())
@@ -551,7 +559,7 @@ class MarketDataForDate:
         return self._market.fundamentals(symbol)
 
     def ma_crossover(self, symbol: str) -> dict:
-        return self._market.ma_crossover(symbol)
+        return self._market.ma_crossover_for_date(symbol, target_date=self._date)
 
     def batch_snapshots(self, symbols: list[str]) -> dict[str, PriceSnapshot | None]:
         return {sym: self.snapshot(sym) for sym in symbols}

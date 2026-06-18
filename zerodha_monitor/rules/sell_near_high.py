@@ -65,9 +65,16 @@ class SellNearHighRule:
         cfg = self.config.sell_near_high
         alerts: list[Alert] = []
 
+        _EXIT_TIERS = {"exit_now", "exit_soon", "sell_on_rally"}
+
         for holding in holdings:
             if cfg.long_term_only and not holding.long_term:
                 log.debug("Skipping %s — not long-term", holding.symbol)
+                continue
+
+            # exit_momentum already handles active exit tiers — skip here to avoid double entries
+            if holding.exit_tier in _EXIT_TIERS:
+                log.debug("Skipping %s — exit_tier=%s handled by exit_momentum", holding.symbol, holding.exit_tier)
                 continue
 
             snap = market.snapshot(holding.symbol)
