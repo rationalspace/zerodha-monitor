@@ -80,7 +80,7 @@ class TestLoadHoldings:
         if not p.exists():
             pytest.skip("holdings.yaml not found")
         holdings = load_holdings(p)
-        assert len(holdings) == 24  # KPITTECH + PERSISTENT sold 2026-06-04
+        assert len(holdings) == 20  # CAMS, MOTILALOFS, ETERNAL, MAXHEALTH sold 2026-07-06
         symbols = {h.symbol for h in holdings}
         assert "INFY" in symbols
         assert "SBIN" in symbols
