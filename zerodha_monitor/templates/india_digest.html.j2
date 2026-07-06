@@ -53,7 +53,13 @@
     {% set upside = p.analyst_upside %}
     {% set tier_color = {'exit_now':'#c0392b','exit_soon':'#e67e22','sell_on_rally':'#f39c12','wait_for_bounce':'#2980b9'}.get(p.exit_tier or '', '#7f8c8d') %}
     <tr style="border-bottom:1px solid #eee;{% if loop.index is odd %}background:#fafafa;{% endif %}">
-      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">{{ p.symbol }}</td>
+      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">
+        {{ p.symbol }}
+        {% if not portfolio_owner or 'Surender' not in portfolio_owner %}
+        <br><a href="http://localhost:8765/second-opinion?symbol={{ p.symbol }}&rule=exit_momentum&date={{ data_date.strftime('%Y-%m-%d') }}"
+               style="font-size:10px;font-weight:400;color:#2980b9;text-decoration:none;">[Second Opinion]</a>
+        {% endif %}
+      </td>
       <td style="padding:8px 6px;">
         <span style="display:inline-block;padding:2px 7px;border-radius:3px;color:#fff;font-size:11px;font-weight:600;background:{{ tier_color }};">
           {{ (p.exit_tier or '').replace('_',' ').upper() }}
@@ -130,7 +136,13 @@
     {% set upside = p.analyst_upside %}
     {% set tier_color = {'exit_now':'#c0392b','exit_soon':'#e67e22','sell_on_rally':'#f39c12','wait_for_bounce':'#2980b9'}.get(p.exit_tier or '', '#7f8c8d') %}
     <tr style="border-bottom:1px solid #eee;{% if loop.index is odd %}background:#fffafa;{% endif %}">
-      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">{{ p.symbol }}</td>
+      <td style="padding:8px 6px;font-weight:700;color:#2c3e50;">
+        {{ p.symbol }}
+        {% if not portfolio_owner or 'Surender' not in portfolio_owner %}
+        <br><a href="http://localhost:8765/second-opinion?symbol={{ p.symbol }}&rule=exit_momentum&date={{ data_date.strftime('%Y-%m-%d') }}"
+               style="font-size:10px;font-weight:400;color:#2980b9;text-decoration:none;">[Second Opinion]</a>
+        {% endif %}
+      </td>
       <td style="padding:8px 6px;">
         <span style="display:inline-block;padding:2px 7px;border-radius:3px;color:#fff;font-size:11px;font-weight:600;background:{{ tier_color }};">
           {{ (p.exit_tier or '').replace('_',' ').upper() }}
