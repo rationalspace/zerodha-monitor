@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .config_loader import EmailConfig
+from .humanize import signed_rupee
 from .rules.sell_near_high import Alert
 from .secrets import get_secret
 
@@ -34,6 +35,7 @@ class EmailDispatcher:
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        self.env.filters["signed_rupee"] = signed_rupee
 
     def send_alert(self, alert: Alert, *, dry_run: bool = False) -> None:
         template = self.env.get_template("india_alert.html.j2")

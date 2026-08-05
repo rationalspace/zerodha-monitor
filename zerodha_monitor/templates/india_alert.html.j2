@@ -52,9 +52,9 @@
         <td style="padding:8px 6px; text-align:right; font-weight:600; border-bottom:1px solid #eee;
              color:{% if p.day_change_pct >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
           {{ "{:+.2%}".format(p.day_change_pct) }}
-          &nbsp;(₹{{ "{:+,.2f}".format(p.day_change_abs) }}/share)
+          &nbsp;({{ p.day_change_abs | signed_rupee(2) }}/share)
           {% if p.day_value_change is not none %}
-          &nbsp;·&nbsp;₹{{ "{:+,.0f}".format(p.day_value_change) }} total
+          &nbsp;·&nbsp;{{ p.day_value_change | signed_rupee }} total
           {% endif %}
         </td>
       </tr>
@@ -110,7 +110,7 @@
         <td style="padding:8px 6px; color:#888;">Unrealized P&amp;L</td>
         <td style="padding:8px 6px; text-align:right; font-weight:700;
              color:{% if p.unrealized_pl >= 0 %}#27ae60{% else %}#c0392b{% endif %};">
-          {{ "{:+.1%}".format(p.unrealized_pl_pct) }} &nbsp;(₹{{ "{:+,.0f}".format(p.unrealized_pl) }})
+          {{ "{:+.1%}".format(p.unrealized_pl_pct) }} &nbsp;({{ p.unrealized_pl | signed_rupee }})
         </td>
       </tr>
     </table>
