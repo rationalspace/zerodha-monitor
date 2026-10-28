@@ -93,6 +93,7 @@ class IndiaMarketData:
         self._history_cache: dict[str, pd.DataFrame] = {}
         self._resolved: dict[str, str] = {}   # symbol → yf_symbol
         self._info_cache: dict[str, dict[str, Any]] = {}  # yf_symbol → info dict
+        self._earnings_cache: dict[str, list[date]] = {}  # yf_symbol → sorted earnings dates
 
     # ------------------------------------------------------------------ public
 
@@ -408,6 +409,34 @@ class IndiaMarketData:
         latest = rsi.iloc[-1]
         return float(latest) if not pd.isna(latest) else None
 
+    def earnings_dates(self, symbol: str) -> list[date]:
+        """Known quarterly results dates (past and upcoming), ascending.
+
+        Merges yfinance get_earnings_dates() with the ticker calendar — for NSE
+        symbols either source alone is often sparse. Empty list if unavailable;
+        callers must treat that as "no data", not "no earnings".
+        """
+        yf_sym = self._resolve(symbol)
+        if yf_sym is None:
+            return []
+        if yf_sym not in self._earnings_cache:
+            found: set[date] = set()
+            ticker = yf.Ticker(yf_sym)
+            try:
+                df = ticker.get_earnings_dates(limit=12)
+                if df is not None and len(df):
+                    found.update(pd.Timestamp(ts).date() for ts in df.index)
+            except Exception as exc:  # noqa: BLE001
+                log.debug("get_earnings_dates failed for %s: %s", yf_sym, exc)
+            try:
+                cal = ticker.calendar
+                raw_dates = cal.get("Earnings Date", []) if isinstance(cal, dict) else []
+                found.update(pd.Timestamp(d).date() for d in raw_dates)
+            except Exception as exc:  # noqa: BLE001
+                log.debug("calendar fetch failed for %s: %s", yf_sym, exc)
+            self._earnings_cache[yf_sym] = sorted(found)
+        return self._earnings_cache[yf_sym]
+
     def fundamentals(self, symbol: str) -> FundamentalsSnapshot:
         """Fetch fundamentals + analyst data via yfinance. Silences yfinance ERROR logs."""
         yf_sym = self._resolve(symbol) or f"{symbol.upper()}.NS"
@@ -560,6 +589,9 @@ class MarketDataForDate:
 
     def ma_crossover(self, symbol: str) -> dict:
         return self._market.ma_crossover_for_date(symbol, target_date=self._date)
+
+    def earnings_dates(self, symbol: str) -> list[date]:
+        return self._market.earnings_dates(symbol)
 
     def batch_snapshots(self, symbols: list[str]) -> dict[str, PriceSnapshot | None]:
         return {sym: self.snapshot(sym) for sym in symbols}

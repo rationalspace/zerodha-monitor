@@ -74,14 +74,17 @@ class TestLoadHoldings:
         assert syms == {"INFY", "TCS"}
 
     def test_real_holdings_yaml_loads(self):
-        """Smoke test against the actual project holdings.yaml."""
+        """Smoke test against the actual project holdings.yaml.
+
+        Deliberately doesn't assert an exact count or specific tickers — this
+        file is local, personal, and changes with every real trade, so a
+        hardcoded snapshot assertion goes stale on the next sale/buy.
+        """
         root = Path(__file__).resolve().parent.parent
         p = root / "holdings.yaml"
         if not p.exists():
             pytest.skip("holdings.yaml not found")
         holdings = load_holdings(p)
-        assert len(holdings) == 20  # CAMS, MOTILALOFS, ETERNAL, MAXHEALTH sold 2026-07-06
-        symbols = {h.symbol for h in holdings}
-        assert "INFY" in symbols
-        assert "SBIN" in symbols
-        assert all(h.long_term for h in holdings), "All holdings should be long_term"
+        assert len(holdings) > 0
+        assert all(h.symbol for h in holdings)
+        assert all(h.quantity > 0 for h in holdings)

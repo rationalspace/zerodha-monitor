@@ -79,6 +79,14 @@ class MaCrossoverConfig:
 
 
 @dataclass
+class EarningsWatchConfig:
+    """Phase 5 — quarterly results tracking for held positions (incl. `hold` tier)."""
+    enabled: bool = True
+    days_ahead: int = 3           # Countdown row when results are within N calendar days
+    big_reaction_pct: float = 0.05  # Post-earnings day move ≥ this → HIGH severity
+
+
+@dataclass
 class DataSourcesConfig:
     ath_history_period: str = "max"
 
@@ -96,6 +104,7 @@ class AppConfig:
     exit_momentum: ExitMomentumConfig = field(default_factory=ExitMomentumConfig)
     bounce_alert: BounceAlertConfig = field(default_factory=BounceAlertConfig)
     ma_crossover: MaCrossoverConfig = field(default_factory=MaCrossoverConfig)
+    earnings_watch: EarningsWatchConfig = field(default_factory=EarningsWatchConfig)
     data_sources: DataSourcesConfig = field(default_factory=DataSourcesConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     portfolio_owner: str = ""   # Display name shown in email header, e.g. "Surender Kaur"
@@ -164,6 +173,13 @@ def load_config(path: Path) -> AppConfig:
         cooldown_days=int(mac_raw.get("cooldown_days", 30)),
     )
 
+    ew_raw = raw.get("earnings_watch", {})
+    ew_cfg = EarningsWatchConfig(
+        enabled=bool(ew_raw.get("enabled", True)),
+        days_ahead=int(ew_raw.get("days_ahead", 3)),
+        big_reaction_pct=float(ew_raw.get("big_reaction_pct", 0.05)),
+    )
+
     ds_raw = raw.get("data_sources", {})
     ds_cfg = DataSourcesConfig(
         ath_history_period=ds_raw.get("ath_history_period", "max"),
@@ -183,6 +199,7 @@ def load_config(path: Path) -> AppConfig:
         exit_momentum=em_cfg,
         bounce_alert=ba_cfg,
         ma_crossover=mac_cfg,
+        earnings_watch=ew_cfg,
         data_sources=ds_cfg,
         logging=log_cfg,
         portfolio_owner=str(portfolio_raw.get("owner", "")),

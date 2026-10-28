@@ -4,9 +4,9 @@ Alert system for NSE/BSE equity holdings on Zerodha. Runs daily after Indian mar
 
 ## What it does
 
-Monitors your NSE holdings across four rules and sends a single **HTML digest email** after each trading day, with per-holding alerts when conditions are met. Covers the full lifecycle: when to hold, when to bounce-exit, when a recovery is real, and when a trend is deteriorating.
+Monitors your NSE holdings across five rules and sends a single **HTML digest email** after each trading day, with per-holding alerts when conditions are met. Covers the full lifecycle: when to hold, when to bounce-exit, when a recovery is real, when a trend is deteriorating, and when a results date is the real catalyst.
 
-## The 4 rules
+## The 5 rules
 
 | # | Rule | Applies to | Fires when |
 |---|---|---|---|
@@ -14,6 +14,7 @@ Monitors your NSE holdings across four rules and sends a single **HTML digest em
 | 2 | **Exit Momentum** | `exit_now`, `exit_soon`, `sell_on_rally` tiers | RSI surge, day pop, 5-day rally, or consecutive up days — hunt the exit |
 | 3 | **Bounce Alert** | `wait_for_bounce` tier | RSI recovering, consecutive up days, 5-day rally, or MA50 reclaimed — with bounce quality tier |
 | 4 | **MA Crossover** | All held positions | 50-day average crosses 200-day — golden or death cross |
+| 5 | **Earnings Watch** | All held positions (incl. `hold` tier) | Quarterly results within `days_ahead` (countdown), due today, or first post-earnings session (day move; HIGH if ≥5%) |
 
 ### Rule 3 — Bounce Alert quality tiers
 
@@ -39,6 +40,16 @@ Detects the exact day the 50-day average crosses the 200-day average:
 Crossover detection is date-scoped: each backfill date uses only data up to that date, so the alert fires once on the exact crossing day — not on every subsequent day the condition remains true.
 
 **Per-symbol deduplication**: when multiple rules fire for the same holding on the same date (e.g. Exit Momentum + MA Crossover both triggered), the digest shows one row per holding — highest severity wins, and all trigger descriptions are merged into it.
+
+### Rule 5 — Earnings Watch
+
+Momentum rules say what the price is doing; this rule says why it might be about to move. Results dates come from Yahoo Finance (`get_earnings_dates` + ticker calendar, merged — either alone is sparse for NSE tickers). Per earnings event:
+
+- **Countdown** (`DIGEST`): a row on each session within `days_ahead` (default 3) of results — *"INFY — Results in 3 days (Thu Jul 23)"*
+- **Report day** (`MEDIUM`): results due today — watch the print
+- **Reaction** (`MEDIUM`, `HIGH` if the move is ≥ `big_reaction_pct`): the first trading session after the print, with the day's move — Friday/weekend announcements are picked up on Monday
+
+Missing alerts mean Yahoo has no date on file, not that no results are due.
 
 ## Technical indicators
 

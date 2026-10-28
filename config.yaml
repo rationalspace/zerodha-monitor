@@ -54,6 +54,15 @@ ma_crossover:
   enabled: true
   cooldown_days: 30
 
+# Earnings watch — Phase 5
+# Tracks quarterly results dates (via Yahoo Finance) for every holding,
+# including `hold` tier. Countdown rows appear within days_ahead of results,
+# then a report-day row, then the first post-earnings session's reaction.
+earnings_watch:
+  enabled: true
+  days_ahead: 3
+  big_reaction_pct: 0.05        # Post-earnings day move >= 5% → HIGH severity
+
 # Data sources
 data_sources:
   ath_history_period: max       # yfinance period for computing ATH
